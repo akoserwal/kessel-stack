@@ -1,5 +1,7 @@
 # Kessel Inventory Consumer Configuration
-# Adapted for kessel-in-a-box from official project-kessel/inventory-consumer
+# Stage: kessel-inventory-consumer-service
+# Consumes Stage 1: outbox.event.hbi.hosts → kessel-inventory-api gRPC :9000
+# Operations: ReportResource / DeleteResource (v1beta2)
 
 consumer:
   # Kafka connection
@@ -11,11 +13,10 @@ consumer:
   # Note: Consumer group ID is hardcoded in official consumer as "kic"
   # Cannot be changed via config file
 
-  # Topics to consume (kessel-in-a-box topic naming)
+  # Stage topic: produced by hbi-outbox-connector watching hbi.outbox
+  # Debezium EventRouter routes by aggregatetype=hosts → outbox.event.hbi.hosts
   topics:
-    - inventory.hosts.events
-    - inventory.host_groups.events
-    - inventory.tags.events
+    - outbox.event.hbi.hosts
 
   # Retry configuration
   retry-options:
@@ -29,9 +30,11 @@ consumer:
     enabled: false
 
 # Inventory API client configuration
+# Stage: calls kessel-inventory-api gRPC :9000 with ReportResource/DeleteResource (v1beta2)
 client:
   enabled: true
-  url: "http://kessel-inventory-api:8000"
+  # gRPC endpoint (matches stage: kessel-inventory-api:9000)
+  url: "kessel-inventory-api:9000"
   enable-oidc-auth: false             # No OAuth for local dev
   insecure-client: true               # Skip TLS verification for local dev
 

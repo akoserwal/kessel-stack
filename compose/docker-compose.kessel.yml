@@ -41,6 +41,7 @@ services:
           cpus: '0.5'
 
   # Kessel Inventory API - Database migration (runs once before serve)
+  # Stage: runs 'inventory-api migrate' as an init container against postgres-kessel-inventory
   kessel-inventory-migrate:
     image: quay.io/cloudservices/kessel-inventory:${KESSEL_INVENTORY_TAG:-latest}
     container_name: kessel-inventory-migrate
@@ -48,7 +49,7 @@ services:
     volumes:
       - ../services/kessel-inventory-api/.inventory-api.yaml:/config/.inventory-api.yaml:ro
     depends_on:
-      postgres-inventory:
+      postgres-kessel-inventory:
         condition: service_healthy
     networks:
       - kessel-network
@@ -57,6 +58,8 @@ services:
   # Kessel Inventory API - Resource management + Authorization proxy
   # Source: https://github.com/project-kessel/inventory-api
   # CRITICAL: Depends on relations-api for all authorization calls (via gRPC)!
+  # Stage: also runs built-in Kafka consumer (consumer.enabled=true) consuming
+  #        outbox.event.kessel.tuples → Relations API → SpiceDB (Stage 2 of pipeline)
   kessel-inventory-api:
     image: quay.io/cloudservices/kessel-inventory:${KESSEL_INVENTORY_TAG:-latest}
     container_name: kessel-inventory-api
@@ -71,8 +74,10 @@ services:
         condition: service_healthy
       kessel-inventory-migrate:
         condition: service_completed_successfully
-      postgres-inventory:
+      postgres-kessel-inventory:
         condition: service_healthy
+      # Note: no hard dependency on kafka — the internal consumer has retry logic
+      # and will connect when Kafka becomes available (started in Phase 6)
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8000/api/kessel/v1/livez"]
       interval: 10s

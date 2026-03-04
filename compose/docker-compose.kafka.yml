@@ -65,7 +65,7 @@ services:
       KAFKA_LOG_RETENTION_HOURS: 168  # 7 days
       KAFKA_LOG_SEGMENT_BYTES: 1073741824  # 1GB
       KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000  # 5 minutes
-      KAFKA_COMPRESSION_TYPE: snappy
+      KAFKA_COMPRESSION_TYPE: none
 
       # JMX metrics
       KAFKA_JMX_PORT: 9101
@@ -94,6 +94,7 @@ services:
           cpus: '0.5'
 
   # Kafka Connect - For Debezium CDC connectors
+  # Stage: runs hbi-outbox-connector (HBI postgres) + kessel-inventory-api-connector (kessel postgres)
   kafka-connect:
     image: debezium/connect:2.4
     container_name: kessel-kafka-connect
@@ -103,6 +104,8 @@ services:
       postgres-rbac:
         condition: service_healthy
       postgres-inventory:
+        condition: service_healthy
+      postgres-kessel-inventory:
         condition: service_healthy
     ports:
       - "${KAFKA_CONNECT_PORT:-8084}:8083"
@@ -124,6 +127,9 @@ services:
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      # Producer compression — set to none so consumers without snappy/lz4 libs can read messages
+      CONNECT_PRODUCER_COMPRESSION_TYPE: none
 
       # Logging
       LOG_LEVEL: INFO

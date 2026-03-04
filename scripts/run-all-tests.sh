@@ -178,24 +178,25 @@ echo -e "${BLUE}=== 4. API Functional Tests ===${NC}"
 # Real RBAC requires x-rh-identity header with auth_type
 RBAC_IDENTITY=$(echo -n '{"identity":{"account_number":"12345","org_id":"12345","type":"User","auth_type":"basic-auth","user":{"username":"test_user","email":"test@example.com","is_org_admin":true}}}' | base64)
 
-# Create test workspace
-log_info "Creating test workspace..."
+# Create test workspace (use timestamp to avoid duplicate-name errors on re-runs)
+WORKSPACE_NAME="test-suite-workspace-$(date +%s)"
+log_info "Creating test workspace ($WORKSPACE_NAME)..."
 WORKSPACE_RESP=$(curl -s -X POST http://localhost:8080/api/rbac/v2/workspaces/ \
     -H "Content-Type: application/json" \
     -H "x-rh-identity: $RBAC_IDENTITY" \
-    -d '{"name":"test-suite-workspace"}')
+    -d "{\"name\":\"$WORKSPACE_NAME\"}")
 WORKSPACE_ID=$(echo "$WORKSPACE_RESP" | jq -r '.id')
 
 run_test "Create workspace (insights-rbac)" \
-    "echo '$WORKSPACE_RESP' | jq -r '.id'" \
-    ""
+    "echo '$WORKSPACE_RESP' | jq -e '.id != null and .id != \"null\"'" \
+    "true"
 
 run_test "Get workspace by ID" \
-    "curl -sf -H 'x-rh-identity: $RBAC_IDENTITY' http://localhost:8080/api/rbac/v2/workspaces/$WORKSPACE_ID" \
+    "curl -sf -H 'x-rh-identity: $RBAC_IDENTITY' http://localhost:8080/api/rbac/v2/workspaces/$WORKSPACE_ID/" \
     "$WORKSPACE_ID"
 
 run_test "List workspaces" \
-    "curl -sf -H 'x-rh-identity: $RBAC_IDENTITY' http://localhost:8080/api/rbac/v2/workspaces/ | jq -r '.data[] | .id' | grep '$WORKSPACE_ID'" \
+    "curl -sf -H 'x-rh-identity: $RBAC_IDENTITY' 'http://localhost:8080/api/rbac/v2/workspaces/?limit=100' | jq -r '.data[] | .id' | grep '$WORKSPACE_ID'" \
     ""
 
 # Real HBI requires x-rh-identity header with auth_type
@@ -221,7 +222,7 @@ echo ""
 echo -e "${BLUE}=== 5. Integration Tests ===${NC}"
 
 run_test "Workspace in RBAC database" \
-    "docker exec kessel-postgres-rbac psql -U rbac -d rbac -c \"SELECT id FROM rbac.workspaces WHERE id = '$WORKSPACE_ID';\"" \
+    "docker exec kessel-postgres-rbac psql -U rbac -d rbac -c \"SELECT id FROM rbac.management_workspace WHERE id::text = '$WORKSPACE_ID';\"" \
     "$WORKSPACE_ID"
 
 run_test "Inventory database HBI schema exists" \
@@ -250,18 +251,19 @@ echo ""
 echo -e "${BLUE}=== 7. End-to-End Flow Tests ===${NC}"
 
 # Create another workspace and verify full flow
+E2E_WS_NAME="e2e-test-workspace-$(date +%s)"
 log_info "Testing complete workspace lifecycle..."
 E2E_WS=$(curl -s -X POST http://localhost:8080/api/rbac/v2/workspaces/ \
     -H "Content-Type: application/json" \
     -H "x-rh-identity: $RBAC_IDENTITY" \
-    -d '{"name":"e2e-test-workspace"}' | jq -r '.id')
+    -d "{\"name\":\"$E2E_WS_NAME\"}" | jq -r '.id')
 
 run_test "E2E: Workspace creation" \
     "echo '$E2E_WS'" \
     ""
 
 run_test "E2E: Workspace in database" \
-    "docker exec kessel-postgres-rbac psql -U rbac -d rbac -c \"SELECT id FROM rbac.workspaces WHERE id = '$E2E_WS';\"" \
+    "docker exec kessel-postgres-rbac psql -U rbac -d rbac -c \"SELECT id FROM rbac.management_workspace WHERE id::text = '$E2E_WS';\"" \
     "$E2E_WS"
 
 # Note: Real HBI does not support host creation via REST.
@@ -287,7 +289,7 @@ run_test "Invalid JSON returns error" \
     ""
 
 run_test "Non-existent resource returns 404" \
-    "curl -s -w '%{http_code}' -H 'x-rh-identity: $RBAC_IDENTITY' http://localhost:8080/api/rbac/v2/workspaces/00000000-0000-0000-0000-000000000000 | tail -c 3" \
+    "curl -s -w '%{http_code}' -H 'x-rh-identity: $RBAC_IDENTITY' http://localhost:8080/api/rbac/v2/workspaces/00000000-0000-0000-0000-000000000000/ | tail -c 3" \
     "404"
 
 run_test "Missing required field returns 400" \

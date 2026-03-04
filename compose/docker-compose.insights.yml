@@ -1,7 +1,7 @@
 # Kessel-in-a-Box: Insights Services (Phase 7)
 # Real insights-rbac from quay.io/cloudservices/rbac
 # Real insights-host-inventory from quay.io/cloudservices/insights-inventory
-# RBAC replicates to Kessel via gRPC (REPLICATION_TO_RELATION_ENABLED)
+# RBAC replication path: management_outbox → Debezium CDC → Kafka → rbac-kafka-consumer → Relations API
 
 services:
   # Redis - Required by insights-rbac for Celery broker and access cache
@@ -49,7 +49,7 @@ services:
 
   # Insights RBAC Service - Real RedHatInsights/insights-rbac
   # Image: quay.io/cloudservices/rbac
-  # Replicates workspaces, roles, groups to Kessel Relations API via gRPC
+  # Writes relation events transactionally to management_outbox (Debezium picks them up)
   insights-rbac:
     image: quay.io/cloudservices/rbac:${INSIGHTS_RBAC_TAG:-latest}
     container_name: insights-rbac
@@ -84,12 +84,12 @@ services:
       WORKSPACE_HIERARCHY_DEPTH_LIMIT: "5"
       WORKSPACE_ORG_CREATION_LIMIT: "20000000"
 
-      # Kessel Relations API integration (gRPC)
+      # Kafka — outbox writes are enabled via REPLICATION_TO_RELATION_ENABLED=true
+      # which makes RBAC use OutboxReplicator (writes to management_outbox).
+      # Debezium picks up from outbox → Kafka → insights-rbac-kafka-consumer → Relations API.
+      KAFKA_ENABLED: "true"
+      KAFKA_SERVERS: "kafka:29092"
       REPLICATION_TO_RELATION_ENABLED: "true"
-      RELATION_API_SERVER: kessel-relations-api:9000
-
-      # Kafka (disabled — using direct gRPC replication instead)
-      KAFKA_ENABLED: "false"
 
       # Allowed apps for role creation
       ROLE_CREATE_ALLOW_LIST: "inventory,advisor,compliance,vulnerability,patch,ros,notifications,integrations,cost-management"
@@ -98,7 +98,7 @@ services:
         condition: service_completed_successfully
       rbac-redis:
         condition: service_healthy
-      kessel-relations-api:
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/rbac/v1/status/ || exit 1"]
@@ -135,14 +135,76 @@ services:
       POSTGRES_SQL_SERVICE_HOST: postgres-rbac
       POSTGRES_SQL_SERVICE_PORT: "5432"
       REDIS_HOST: rbac-redis
+      KAFKA_ENABLED: "true"
+      KAFKA_SERVERS: "kafka:29092"
       REPLICATION_TO_RELATION_ENABLED: "true"
-      RELATION_API_SERVER: kessel-relations-api:9000
-      KAFKA_ENABLED: "false"
     depends_on:
       insights-rbac:
         condition: service_healthy
     networks:
       - kessel-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Insights RBAC Kafka Consumer - Real rbac-kafka-consumer from insights-rbac image
+  # Consumes: outbox.event.rbac-consumer-replication-event (produced by Debezium EventRouter)
+  # Calls: kessel-relations-api gRPC :9000 to apply relation changes (add/remove)
+  # Docs: https://github.com/RedHatInsights/insights-rbac/blob/master/docs/KAFKA_CONSUMER.md
+  insights-rbac-kafka-consumer:
+    image: quay.io/cloudservices/rbac:${INSIGHTS_RBAC_TAG:-latest}
+    container_name: insights-rbac-kafka-consumer
+    entrypoint: ["/bin/sh", "-c", "cd /opt/rbac/rbac && python manage.py launch-rbac-kafka-consumer"]
+    volumes:
+      # Minimal Clowder config — provides metricsPort (9100) so the consumer
+      # can start its Prometheus server. DEVELOPMENT=True still controls DB/Kafka.
+      - ../config/rbac-cdappconfig.json:/cdappconfig.json:ro
+    environment:
+      DEVELOPMENT: "True"
+      DJANGO_READ_DOT_ENV_FILE: "True"
+      DATABASE_SERVICE_NAME: POSTGRES_SQL
+      DATABASE_ENGINE: postgresql
+      DATABASE_NAME: rbac
+      DATABASE_HOST: postgres-rbac
+      DATABASE_PORT: "5432"
+      DATABASE_USER: rbac
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
+      POSTGRES_SQL_SERVICE_HOST: postgres-rbac
+      POSTGRES_SQL_SERVICE_PORT: "5432"
+      REDIS_HOST: rbac-redis
+
+      # Clowder config — provides metricsPort for Prometheus server startup
+      CLOWDER_ENABLED: "true"
+      ACG_CONFIG: "/cdappconfig.json"
+
+      # Kafka consumer config
+      # AggregateTypes.RELATIONS = "relations-replication-event" in RBAC source,
+      # so Debezium EventRouter routes to outbox.event.relations-replication-event
+      KAFKA_ENABLED: "true"
+      KAFKA_SERVERS: "kafka:29092"
+      RBAC_KAFKA_CONSUMER_TOPIC: "outbox.event.relations-replication-event"
+      RBAC_KAFKA_CONSUMER_GROUP_ID: "rbac-consumer-group"
+
+      # Relations API — consumer calls this gRPC endpoint to apply relation changes
+      REPLICATION_TO_RELATION_ENABLED: "true"
+      RELATION_API_SERVER: kessel-relations-api:9000
+
+      DJANGO_LOG_LEVEL: INFO
+    depends_on:
+      insights-rbac:
+        condition: service_healthy
+      kessel-relations-api:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - kessel-network
+    restart: unless-stopped
     deploy:
       resources:
         limits:

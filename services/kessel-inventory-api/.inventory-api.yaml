@@ -19,14 +19,23 @@ authz:
 storage:
   database: postgres
   postgres:
-    host: postgres-inventory
+    # Stage: kessel-inventory-api has its own dedicated postgres (separate from HBI's postgres)
+    host: postgres-kessel-inventory
     port: 5432
     dbname: inventory
     user: inventory
     password: secretpassword
 
+# Internal Kafka consumer — Stage 2 of the two-stage outbox pipeline.
+# Consumes outbox.event.kessel.tuples produced by kessel-inventory-api-connector
+# (Debezium watching public.outbox_events). Calls Relations API → SpiceDB.
 consumer:
-  enabled: false
+  enabled: true
+  bootstrap-servers: kafka:29092
+  topic: outbox.event.kessel.tuples
+  group-id: inventory-consumer
+  auth:
+    enabled: false   # no SASL/TLS for local dev — prevents security.protocol="" error
 
 log:
   level: info

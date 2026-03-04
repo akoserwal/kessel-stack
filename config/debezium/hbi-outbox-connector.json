@@ -1,19 +1,20 @@
 {
-  "name": "rbac-postgres-connector",
+  "name": "hbi-outbox-connector",
   "config": {
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-    "database.hostname": "postgres-rbac",
+    "database.hostname": "postgres-inventory",
     "database.port": "5432",
-    "database.user": "rbac",
+    "database.user": "inventory",
     "database.password": "secretpassword",
-    "database.dbname": "rbac",
-    "topic.prefix": "rbac",
+    "database.dbname": "inventory",
+    "topic.prefix": "hbi",
 
-    "table.include.list": "rbac.management_outbox",
+    "schema.include.list": "hbi",
+    "table.include.list": "hbi.outbox",
 
     "plugin.name": "pgoutput",
-    "slot.name": "debezium_rbac_outbox",
-    "publication.name": "dbz_publication_rbac_outbox",
+    "slot.name": "debezium_outbox",
+    "publication.name": "dbz_publication_hbi_outbox",
     "publication.autocreate.mode": "filtered",
 
     "tasks.max": "1",
@@ -24,23 +25,20 @@
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
     "key.converter.schemas.enable": "false",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "value.converter.schemas.enable": "true",
+    "value.converter.schemas.enable": "false",
 
     "transforms": "outbox",
     "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
     "transforms.outbox.table.field.event.id": "id",
     "transforms.outbox.table.field.event.key": "aggregateid",
     "transforms.outbox.table.field.event.payload": "payload",
-    "transforms.outbox.table.field.event.type": "type",
+    "transforms.outbox.table.field.event.type": "aggregatetype",
     "transforms.outbox.route.by.field": "aggregatetype",
-    "transforms.outbox.route.topic.replacement": "outbox.event.${routedByValue}",
+    "transforms.outbox.route.topic.replacement": "outbox.event.hbi.${routedByValue}",
     "transforms.outbox.table.expand.json.payload": "true",
+    "transforms.outbox.table.fields.additional.placement": "operation:header,version:header",
 
     "tombstones.on.delete": "false",
-
-    "heartbeat.interval.ms": "30000",
-    "heartbeat.action.query": "SELECT pg_logical_emit_message(false, 'heartbeat', now()::varchar);",
-
-    "producer.override.compression.type": "none"
+    "heartbeat.interval.ms": "10000"
   }
 }

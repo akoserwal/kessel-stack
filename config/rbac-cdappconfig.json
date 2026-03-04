@@ -1,0 +1,69 @@
+{
+  "metricsPort": 9100,
+  "metadata": {
+    "name": "rbac",
+    "envName": "kessel-local"
+  },
+  "metricsPath": "/metrics",
+  "privatePort": 10000,
+  "publicPort": 8080,
+  "webPort": 8080,
+  "tlsCAPath": null,
+  "database": {
+    "adminPassword": "secretpassword",
+    "adminUsername": "rbac",
+    "hostname": "postgres-rbac",
+    "name": "rbac",
+    "password": "secretpassword",
+    "port": 5432,
+    "sslMode": "disable",
+    "username": "rbac"
+  },
+  "kafka": {
+    "brokers": [
+      {
+        "hostname": "kafka",
+        "port": 29092,
+        "authtype": null,
+        "cacert": null,
+        "sasl": null
+      }
+    ],
+    "topics": [
+      {
+        "name": "outbox.event.rbac-consumer-replication-event",
+        "requestedName": "outbox.event.rbac-consumer-replication-event"
+      }
+    ]
+  },
+  "inMemoryDb": {
+    "hostname": "rbac-redis",
+    "port": 6379,
+    "username": "",
+    "password": ""
+  },
+  "logging": {
+    "cloudwatch": {
+      "accessKeyId": "",
+      "logGroup": "",
+      "region": "us-east-1",
+      "secretAccessKey": ""
+    },
+    "type": "null"
+  },
+  "featureFlags": {
+    "hostname": "localhost",
+    "port": 4242,
+    "scheme": "http",
+    "clientAccessToken": null
+  },
+  "endpoints": [],
+  "objectStore": {
+    "accessKey": null,
+    "secretKey": null,
+    "hostname": "",
+    "port": 0,
+    "tls": false,
+    "buckets": []
+  }
+}

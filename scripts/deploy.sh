@@ -96,6 +96,7 @@ cleanup_existing() {
         log_warn "Removing all data volumes..."
         docker volume rm kessel-postgres-rbac-data 2>/dev/null || true
         docker volume rm kessel-postgres-inventory-data 2>/dev/null || true
+        docker volume rm kessel-postgres-kessel-inventory-data 2>/dev/null || true
         docker volume rm kessel-postgres-spicedb-data 2>/dev/null || true
         docker volume rm zookeeper-data 2>/dev/null || true
         docker volume rm zookeeper-logs 2>/dev/null || true
@@ -110,7 +111,7 @@ cleanup_existing() {
     fi
 
     # Kill processes on conflicting ports
-    for port in 2181 5432 5433 5434 8080 8081 8082 8083 8084 8086 9001 9002 9092 9101 50051 8443 9090; do
+    for port in 2181 5432 5433 5434 5435 8080 8081 8082 8083 8084 8086 9001 9002 9092 9101 50051 8443 9090; do
         pid=$(lsof -ti:$port 2>/dev/null || true)
         if [ -n "$pid" ]; then
             log_warn "Killing process on port $port (PID: $pid)"
@@ -141,16 +142,17 @@ deploy_phase5() {
 
     cd "$PROJECT_ROOT"
 
-    # Start PostgreSQL databases
+    # Start PostgreSQL databases (4 instances: rbac, hbi, kessel-inventory, spicedb)
     log_info "Starting PostgreSQL instances..."
     docker compose -f compose/docker-compose.yml up -d \
-        postgres-rbac postgres-inventory postgres-spicedb
+        postgres-rbac postgres-inventory postgres-kessel-inventory postgres-spicedb
 
     # Wait for databases
     log_info "Waiting for databases to be ready..."
     for i in {1..30}; do
         if docker exec kessel-postgres-rbac pg_isready -U rbac &>/dev/null && \
            docker exec kessel-postgres-inventory pg_isready -U inventory &>/dev/null && \
+           docker exec kessel-postgres-kessel-inventory pg_isready -U inventory &>/dev/null && \
            docker exec kessel-postgres-spicedb pg_isready -U spicedb &>/dev/null; then
             log_success "All databases ready"
             break
@@ -306,6 +308,10 @@ deploy_phase6() {
         sleep 2
     done
     echo ""
+
+    # Register Debezium connectors (two-stage outbox pipeline matching stage architecture)
+    log_info "Registering Debezium CDC connectors..."
+    "$SCRIPT_DIR/setup-cdc.sh" || log_warn "CDC connector registration failed — run scripts/setup-cdc.sh manually"
 
     # Start CDC Consumers (they depend on kessel-relations-api and kessel-inventory-api)
     # Use --no-deps when the API dependency is skipped (running locally)
@@ -495,6 +501,7 @@ verify_deployment() {
     local expected_containers=(
         "kessel-postgres-rbac"
         "kessel-postgres-inventory"
+        "kessel-postgres-kessel-inventory"
         "kessel-postgres-spicedb"
         "kessel-spicedb"
         "kessel-zookeeper"
@@ -653,9 +660,10 @@ EOF
     cat << EOF
 📦 Databases:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  RBAC Database:           localhost:5432 (user: rbac)
-  Inventory Database:      localhost:5433 (user: inventory)
-  SpiceDB Database:        localhost:5434 (user: spicedb)
+  RBAC Database:              localhost:5432 (user: rbac)
+  HBI Inventory Database:     localhost:5433 (user: inventory)  ← hbi.outbox (Stage 1 CDC)
+  Kessel Inventory Database:  localhost:5435 (user: inventory)  ← public.outbox_events (Stage 2 CDC)
+  SpiceDB Database:           localhost:5434 (user: spicedb)
 
 🧪 Quick Test:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -685,6 +693,136 @@ EOF
 
 EOF
 
+}
+
+# ---------------------------------------------------------------------------
+# Minimal stack: SpiceDB + Relations API only (5 containers)
+# Use this for: schema testing, CheckPermission calls, new service integration dev
+# ---------------------------------------------------------------------------
+deploy_minimal() {
+    log_info "=========================================="
+    log_info "MINIMAL MODE: SpiceDB + Relations API"
+    log_info "=========================================="
+    log_info "Starts only the authorization core — no Kafka, no Insights services."
+    log_info "Use this to test your SpiceDB schema and CheckPermission calls quickly."
+    echo ""
+
+    cd "$PROJECT_ROOT"
+
+    log_info "Starting SpiceDB postgres..."
+    docker compose -f compose/docker-compose.yml up -d postgres-spicedb
+
+    log_info "Waiting for SpiceDB postgres..."
+    for i in {1..20}; do
+        if docker exec kessel-postgres-spicedb pg_isready -U spicedb &>/dev/null; then
+            log_success "SpiceDB postgres ready"
+            break
+        fi
+        echo -n "."
+        sleep 2
+    done
+    echo ""
+
+    log_info "Running SpiceDB migration..."
+    docker compose -f compose/docker-compose.yml up spicedb-migrate
+    sleep 2
+
+    log_info "Starting SpiceDB..."
+    docker compose -f compose/docker-compose.yml up -d spicedb
+
+    log_info "Waiting for SpiceDB..."
+    for i in {1..30}; do
+        if curl -sf http://localhost:8443/healthz &>/dev/null; then
+            log_success "SpiceDB ready"
+            break
+        fi
+        echo -n "."
+        sleep 2
+    done
+    echo ""
+
+    log_info "Starting kessel-relations-api..."
+    docker compose -f compose/docker-compose.yml \
+                   -f compose/docker-compose.kessel.yml \
+                   up -d kessel-relations-api
+
+    log_info "Waiting for Relations API..."
+    for i in {1..30}; do
+        if grpcurl -plaintext localhost:${RELATIONS_GRPC_PORT:-9001} grpc.health.v1.Health/Check &>/dev/null; then
+            log_success "Relations API ready"
+            break
+        fi
+        echo -n "."
+        sleep 2
+    done
+    echo ""
+
+    log_success "Minimal stack is up!"
+    cat << EOF
+
+╔════════════════════════════════════════════════════════════╗
+║               Minimal Stack Running                        ║
+╚════════════════════════════════════════════════════════════╝
+
+  SpiceDB HTTP:          http://localhost:8443
+  SpiceDB gRPC:          localhost:50051  (token: testtesttesttest)
+  Kessel Relations API:  http://localhost:8082 (HTTP)
+                         localhost:9001   (gRPC)
+
+Next steps for a new service integration:
+
+  # 1. Load your schema
+  cat onboarding/hello-world-service/schema/edge.zed | \\
+    curl -s -X PUT http://localhost:8443/v1/schema \\
+      -H "Authorization: Bearer testtesttesttest" \\
+      -H "Content-Type: application/json" \\
+      -d "{\\"schema\\": \$(jq -Rs .)}"
+
+  # 2. Create a tuple
+  curl -X POST http://localhost:8082/api/authz/v1beta1/tuples \\
+    -H "Content-Type: application/json" \\
+    -d '{"upsert":true,"tuples":[{"resource":{"type":{"namespace":"edge","name":"device"},"id":"dev-1"},"relation":"t_workspace","subject":{"type":{"namespace":"rbac","name":"workspace"},"id":"ws-1"}}]}'
+
+  # 3. Check a permission
+  curl -X POST http://localhost:8082/api/authz/v1beta1/check \\
+    -H "Content-Type: application/json" \\
+    -d '{"resource":{"type":{"namespace":"edge","name":"device"},"id":"dev-1"},"permission":"view","subject":{"type":{"namespace":"rbac","name":"principal"},"id":"alice"}}'
+
+  # Stop: docker compose -f compose/docker-compose.yml \\
+  #              -f compose/docker-compose.kessel.yml down
+
+EOF
+}
+
+verify_minimal() {
+    local all_healthy=true
+
+    log_info "Checking minimal stack..."
+
+    for container in kessel-postgres-spicedb kessel-spicedb kessel-relations-api; do
+        if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
+            echo -e "  ✓ ${container}"
+        else
+            echo -e "  ${RED}✗${NC} ${container} (not running)"
+            all_healthy=false
+        fi
+    done
+
+    if curl -sf http://localhost:8443/healthz | grep -q "SERVING"; then
+        echo "  ✓ SpiceDB: SERVING"
+    else
+        echo -e "  ${RED}✗${NC} SpiceDB: NOT RESPONDING"
+        all_healthy=false
+    fi
+
+    if grpcurl -plaintext localhost:${RELATIONS_GRPC_PORT:-9001} grpc.health.v1.Health/Check &>/dev/null; then
+        echo "  ✓ Kessel Relations API: SERVING"
+    else
+        echo -e "  ${RED}✗${NC} Kessel Relations API: NOT RESPONDING"
+        all_healthy=false
+    fi
+
+    [ "$all_healthy" = true ] && return 0 || return 1
 }
 
 # Main deployment flow
@@ -720,6 +858,15 @@ main() {
                 export WITH_OBSERVABILITY=true
                 shift
                 ;;
+            --minimal)
+                # Minimal mode: SpiceDB + Relations API only.
+                # For new service integration testing — no Kafka, no Insights services.
+                check_prerequisites
+                cleanup_existing
+                create_network
+                deploy_minimal
+                verify_minimal && exit 0 || exit 1
+                ;;
             --help)
                 cat << EOF
 Usage: $0 [OPTIONS]
@@ -732,13 +879,16 @@ Options:
   --skip-insights-rbac         Skip insights-rbac (run locally on port 8080)
   --skip-insights-host-inventory  Skip insights-host-inventory (run locally on port 8081)
   --with-observability         Deploy Prometheus, Grafana, and Alertmanager
+  --minimal                    Start only SpiceDB + Relations API (schema testing, new service dev)
   --help                       Show this help message
 
 Examples:
-  $0                          # Normal deployment
+  $0                          # Full deployment (14 containers)
+  $0 --minimal                # SpiceDB + Relations API only (3 containers, fast)
   $0 --clean-volumes          # Fresh deployment (removes data)
   $0 --skip-tests             # Deploy without verification
   $0 --with-observability     # Deploy with Prometheus + Grafana + Alertmanager
+
 Local Development (skip services to run them from source locally):
   $0 --skip-inventory-api     # Run inventory-api locally on port 8000
   $0 --skip-relations-api     # Run relations-api locally on port 8000
@@ -746,6 +896,11 @@ Local Development (skip services to run them from source locally):
 
   Other Docker containers will route to your local process via host-gateway.
   See docs/local-dev.md for details.
+
+New Service Integration:
+  $0 --minimal                # Start just the auth layer
+  # Then load your schema, create tuples, run CheckPermission
+  # See onboarding/ for step-by-step guides
 
 Monitoring Dashboard (run separately):
   cd monitoring && ./run.sh

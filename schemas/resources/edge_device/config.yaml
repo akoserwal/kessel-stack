@@ -1,0 +1,3 @@
+resource_type: edge_device
+resource_reporters:
+  - edge

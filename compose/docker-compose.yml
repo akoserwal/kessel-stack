@@ -6,6 +6,7 @@ services:
   postgres-rbac:
     image: postgres:15-alpine
     container_name: kessel-postgres-rbac
+    command: postgres -c wal_level=logical
     environment:
       POSTGRES_USER: rbac
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
@@ -33,7 +34,8 @@ services:
           memory: 256M
           cpus: '0.5'
 
-  # PostgreSQL - Inventory Database (insights-host-inventory + kessel-inventory data)
+  # PostgreSQL - HBI (insights-host-inventory) Database
+  # Separate from kessel-inventory — mirrors stage where HBI has its own postgres
   postgres-inventory:
     image: postgres:15-alpine
     container_name: kessel-postgres-inventory
@@ -49,6 +51,39 @@ services:
     volumes:
       - postgres-inventory-data:/var/lib/postgresql/data
       - ./init-scripts/inventory:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kessel-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # PostgreSQL - kessel-inventory-api Database (separate from HBI postgres)
+  # Stage: kessel-inventory-api has its own postgres, with public.outbox_events for CDC (Stage 2)
+  # wal_level=logical required for Debezium to capture outbox_events changes
+  postgres-kessel-inventory:
+    image: postgres:15-alpine
+    container_name: kessel-postgres-kessel-inventory
+    command: postgres -c wal_level=logical
+    environment:
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
+      POSTGRES_DB: inventory
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    ports:
+      - "${POSTGRES_KESSEL_INVENTORY_PORT:-5435}:5432"
+    volumes:
+      - postgres-kessel-inventory-data:/var/lib/postgresql/data
+      - ./init-scripts/kessel-inventory:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U inventory"]
       interval: 5s
@@ -345,6 +380,9 @@ volumes:
   postgres-inventory-data:
     driver: local
     name: kessel-postgres-inventory-data
+  postgres-kessel-inventory-data:
+    driver: local
+    name: kessel-postgres-kessel-inventory-data
   postgres-spicedb-data:
     driver: local
     name: kessel-postgres-spicedb-data
