@@ -219,43 +219,12 @@ curl http://localhost:9090/metrics | head -20
 
 ### Monitoring Dashboard & Management Console
 
-Two local web tools ship with the box:
+Two local web tools ship with the box. See [docs/monitoring-and-console.md](docs/monitoring-and-console.md) for full details.
 
-**Monitoring dashboard** (`http://localhost:8888`) — static pages served by Python:
-
-```bash
-cd monitoring && python3 app.py
-```
-
-| Page | URL | Purpose |
-|------|-----|---------|
-| Hub | `/` | Service status overview, links to all tools |
-| Architecture | `/dashboard.html` | Live architecture diagram + real-time service health |
-| Management | `/management.html` | SpiceDB schema editor, CDC connector CRUD, Kafka topics |
-| Onboarding | `/app-onboarding.html` | 7-step wizard to onboard a new application |
-| PDF Export | `/onboarding-pdf.html` | Printable onboarding guide |
-
-**Management console backend** (`http://localhost:8889`) — Go HTTP server:
-
-```bash
-cd console && go run .
-```
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/mgmt/status` | GET | Live health of all services (JSON) |
-| `/api/mgmt/schema` | GET/POST | Read/write SpiceDB schema |
-| `/api/mgmt/schema/validate` | POST | Validate ZED schema without applying |
-| `/api/mgmt/schema/ksl` | GET | List KSL source files |
-| `/api/mgmt/schema/ksl/{name}` | GET | Read a KSL file |
-| `/api/mgmt/schema/compile` | POST | Run `compile-schema.sh` (KSL → ZED) |
-| `/api/mgmt/cdc/connectors` | GET/POST | List / create Debezium connectors |
-| `/api/mgmt/cdc/connectors/{name}` | GET/DELETE | Get / delete a connector |
-| `/api/mgmt/cdc/connectors/{name}/restart` | POST | Restart a connector |
-| `/api/mgmt/kafka/topics` | GET/POST | List / create Kafka topics |
-| `/api/mgmt/kafka/topics/{name}` | DELETE | Delete a topic |
-| `/api/mgmt/ops/log` | GET | In-memory ops log (last 200 entries) |
-| `/api/mgmt/onboard` | POST | Run full app-onboarding pipeline (SSE stream) |
+| Tool | URL | Start |
+|------|-----|-------|
+| Monitoring dashboard | `http://localhost:8888` | `cd monitoring && python3 app.py` |
+| Management console | `http://localhost:8889` | `cd console && go run .` |
 
 ## Data Flows
 
