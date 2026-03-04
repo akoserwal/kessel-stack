@@ -234,7 +234,7 @@ Two local web tools ship with the box. See [docs/monitoring-and-console.md](docs
 User → POST /api/rbac/v2/workspaces/ (x-rh-identity required)
   ↓ atomic: INSERT INTO workspaces + INSERT INTO management_outbox
 postgres-rbac (wal_level=logical)
-  ↓ WAL → Debezium rbac-connector (kafka-connect :8084)
+  ↓ WAL → Debezium rbac-postgres-connector (kafka-connect :8084)
   ↓ EventRouter SMT → outbox.event.relations-replication-event
 Kafka
   ↓ insights-rbac-kafka-consumer
@@ -253,25 +253,31 @@ The outbox write is gated by `REPLICATION_TO_RELATION_ENABLED=true`. The managem
 **Stage 1 — HBI → inventory-consumer → kessel-inventory-api:**
 
 ```
-Host agent → platform.inventory.host-ingress (Kafka topic)
-  ↓ inv_mq_service.py (optional — commented out by default)
-insights-host-inventory: REST API or direct DB write
-  ↓ INSERT INTO hbi.hosts (postgres-inventory, wal_level=logical)
+insights-host-inventory: REST POST /api/inventory/v1/hosts
+  ↓ atomic: INSERT INTO hbi.hosts + INSERT ghost row into hbi.outbox
+postgres-inventory (wal_level=logical)
   ↓ WAL → Debezium hbi-outbox-connector (kafka-connect :8084)
-Kafka → outbox events topic
+  ↓ EventRouter SMT → outbox.event.hbi.hosts
+Kafka topic: outbox.event.hbi.hosts
   ↓ inventory-consumer (project-kessel/inventory-consumer)
 kessel-inventory-api gRPC :9002 → ReportResource
-  ↓ writes to postgres-kessel-inventory (5435)
+  ↓ writes resource + ghost row to public.outbox_events
+postgres-kessel-inventory (5435)
 ```
 
-**Stage 2 — kessel-inventory-api outbox → kessel-relations-api → SpiceDB:**
+Note: `inv_mq_service.py` (Kafka host-ingress consumer) is commented out by default. Hosts are created via the REST API.
+
+**Stage 2 — kessel-inventory-api outbox → SpiceDB:**
 
 ```
 postgres-kessel-inventory (wal_level=logical) — public.outbox_events
   ↓ WAL → Debezium kessel-inventory-api-connector (kafka-connect :8084)
-Kafka
-  ↓ kessel-relations-api internal consumer
-kessel-relations-api → SpiceDB WriteRelationships
+  ↓ EventRouter SMT → outbox.event.kessel.tuples
+Kafka topic: outbox.event.kessel.tuples
+  ↓ kessel-inventory-api built-in consumer goroutine (consumer.enabled: true)
+kessel-relations-api gRPC :9000 → WriteRelationships
+  ↓
+SpiceDB
 ```
 
 **Latency**: 5–15 s end-to-end (two CDC hops)
@@ -417,12 +423,12 @@ docker exec -it kessel-postgres-spicedb psql -U spicedb -d spicedb
 ```bash
 # Debezium connector status (Kafka Connect on port 8084)
 curl http://localhost:8084/connectors | jq
-curl http://localhost:8084/connectors/rbac-connector/status | jq
+curl http://localhost:8084/connectors/rbac-postgres-connector/status | jq
 curl http://localhost:8084/connectors/hbi-outbox-connector/status | jq
 curl http://localhost:8084/connectors/kessel-inventory-api-connector/status | jq
 
 # Restart a connector
-curl -X POST http://localhost:8084/connectors/rbac-connector/restart
+curl -X POST http://localhost:8084/connectors/rbac-postgres-connector/restart
 
 # Or use the management console
 curl http://localhost:8889/api/mgmt/cdc/connectors | jq
@@ -489,10 +495,10 @@ docker exec kessel-postgres-rbac psql -U rbac -c "SHOW wal_level;"
 docker exec kessel-postgres-inventory psql -U inventory -c "SHOW wal_level;"
 
 # Check connector health
-curl http://localhost:8084/connectors/rbac-connector/status | jq .connector.state
+curl http://localhost:8084/connectors/rbac-postgres-connector/status | jq .connector.state
 
 # Restart connector if FAILED
-curl -X POST http://localhost:8084/connectors/rbac-connector/restart
+curl -X POST http://localhost:8084/connectors/rbac-postgres-connector/restart
 ```
 
 ### Dashboard shows "console offline"
