@@ -1,0 +1,40 @@
+{
+    "_comment": "Place this file at rbac-config/configs/prod/roles/edge.json. Bump 'version' on every change — RBAC uses it to detect updates and re-seed the role.",
+
+    "roles": [
+        {
+            "name": "Edge Device Administrator",
+            "description": "Perform any available operation on any Edge Device resource.",
+            "system": true,
+            "platform_default": false,
+            "admin_default": true,
+            "version": 1,
+            "access": [
+                { "permission": "edge:*:*" }
+            ]
+        },
+        {
+            "name": "Edge Device Viewer",
+            "description": "View edge devices.",
+            "system": true,
+            "platform_default": true,
+            "admin_default": false,
+            "version": 1,
+            "access": [
+                { "permission": "edge:devices:read" }
+            ]
+        },
+        {
+            "name": "Edge Device Editor",
+            "description": "Register, update, and deregister edge devices.",
+            "system": true,
+            "platform_default": false,
+            "admin_default": false,
+            "version": 1,
+            "access": [
+                { "permission": "edge:devices:read" },
+                { "permission": "edge:devices:write" }
+            ]
+        }
+    ]
+}

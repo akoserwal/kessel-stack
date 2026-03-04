@@ -1,0 +1,38 @@
+// edge.ksl — KSL schema definition for the edge-device-service Hello World example.
+//
+// This file belongs in rbac-config/configs/prod/schemas/src/edge.ksl.
+// Compile it with: make ksl-test-schema-stage
+//
+// The @add_v1_based_permission extension automatically propagates each permission
+// through the full type hierarchy: role → role_binding → platform → tenant → workspace.
+// You only define the leaf type (edge/device) and the workspace relation.
+
+version 0.1
+namespace edge
+
+import rbac
+
+public type device {
+    // Every edge device belongs to exactly one workspace.
+    // This is the canonical relation pattern for workspace-scoped resources.
+    private relation workspace: [ExactlyOne rbac.workspace]
+
+    // View permission: granted when the workspace grants edge_device_view.
+    // v1 mapping: edge:devices:read → edge_device_view
+    @rbac.add_v1_based_permission(app:'edge', resource:'devices', verb:'read',  v2_perm:'edge_device_view')
+    relation view: workspace.edge_device_view
+
+    // Update permission: granted when the workspace grants edge_device_update.
+    // v1 mapping: edge:devices:write → edge_device_update
+    @rbac.add_v1_based_permission(app:'edge', resource:'devices', verb:'write', v2_perm:'edge_device_update')
+    relation update: workspace.edge_device_update
+
+    // Delete permission: granted when the workspace grants edge_device_delete.
+    // v1 mapping: edge:devices:write → edge_device_delete (same verb, different v2 perm)
+    @rbac.add_v1_based_permission(app:'edge', resource:'devices', verb:'write', v2_perm:'edge_device_delete')
+    relation delete: workspace.edge_device_delete
+
+    // Manage permission: broader access, maps to edge:devices:*
+    @rbac.add_v1_based_permission(app:'edge', resource:'devices', verb:'*', v2_perm:'edge_device_manage')
+    relation manage: workspace.edge_device_manage
+}

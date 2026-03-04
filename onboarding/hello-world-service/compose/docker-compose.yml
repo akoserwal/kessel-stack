@@ -1,0 +1,106 @@
+# edge-device-service: Hello World Kessel Integration
+#
+# Prerequisites: kessel-in-a-box-real is running (bash scripts/deploy.sh from project root).
+# This compose file adds only the edge-device-service on top of the existing stack.
+#
+# Usage:
+#   cd onboarding/hello-world-service
+#   docker compose -f compose/docker-compose.yml up -d
+#
+# Then run the setup script to load schema and register the Debezium connector:
+#   bash setup.sh
+#
+# API available at: http://localhost:8085
+
+services:
+  # Dedicated PostgreSQL for edge-device-service
+  # Separate DB per service — never share a postgres instance across services in Kessel.
+  postgres-edge-devices:
+    image: postgres:15-alpine
+    container_name: edge-postgres
+    # wal_level=logical is REQUIRED for Debezium to capture WAL events
+    command: postgres -c wal_level=logical
+    environment:
+      POSTGRES_USER: edge
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: edge
+    ports:
+      - "5436:5432"
+    volumes:
+      - edge-postgres-data:/var/lib/postgresql/data
+      - ../db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "edge"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - kessel-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # The edge-device-service itself
+  # Exposes:
+  #   POST /api/edge/v1/devices      — register a device
+  #   GET  /api/edge/v1/devices      — list devices
+  #   GET  /api/edge/v1/devices/:id  — get a device
+  #   POST /api/edge/v1/check        — verify a permission (proxies to Relations API)
+  #   GET  /health                   — liveness
+  #   GET  /ready                    — readiness (waits for DB + Kafka)
+  edge-device-service:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: edge-device-service
+    environment:
+      # Database
+      DB_HOST: postgres-edge-devices
+      DB_PORT: "5432"
+      DB_USER: edge
+      DB_PASSWORD: secretpassword
+      DB_NAME: edge
+
+      # Kafka (from kessel-in-a-box-real)
+      KAFKA_BROKERS: "kafka:29092"
+      KAFKA_TOPIC: "outbox.event.edge.devices"
+      KAFKA_GROUP_ID: "edge-device-consumer"
+
+      # Kessel Relations API (from kessel-in-a-box-real)
+      RELATIONS_API_URL: "http://kessel-relations-api:8000"
+
+      # SpiceDB namespace for edge/device resources
+      RESOURCE_NAMESPACE: "edge"
+      RESOURCE_TYPE: "device"
+      WORKSPACE_NAMESPACE: "rbac"
+      WORKSPACE_TYPE: "workspace"
+
+      # Logging
+      LOG_LEVEL: "info"
+    ports:
+      - "8085:8080"
+    depends_on:
+      postgres-edge-devices:
+        condition: service_healthy
+    networks:
+      - kessel-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+volumes:
+  edge-postgres-data:
+
+networks:
+  kessel-network:
+    external: true
+    name: kessel-network

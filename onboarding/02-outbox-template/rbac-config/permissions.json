@@ -1,0 +1,24 @@
+{
+    "_comment": "Place this file at rbac-config/configs/prod/permissions/my-service.json. The filename (my-service) becomes the application name in the permission string: my-service:<resource>:<verb>. See rbac-config README for full details.",
+
+    "*": [
+        { "verb": "read" },
+        { "verb": "*" }
+    ],
+
+    "my-resources": [
+        {
+            "verb": "read",
+            "description": "View My Service resources"
+        },
+        {
+            "verb": "write",
+            "description": "Create, update, and delete My Service resources",
+            "requires": ["read"]
+        },
+        {
+            "verb": "*",
+            "description": "All operations on My Service resources"
+        }
+    ]
+}

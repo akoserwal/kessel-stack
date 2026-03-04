@@ -1,0 +1,114 @@
+// edge.zed — Compiled SpiceDB schema for the edge-device-service Hello World example.
+//
+// This is a SELF-CONTAINED schema for local dev/demo. It includes a simplified version
+// of the RBAC workspace hierarchy (only the permissions needed for edge/device access).
+//
+// In production, this schema would be compiled from KSL (edge.ksl) and merged
+// into the full rbac-config schema. The key difference: in production, the rbac/*
+// definitions already exist and you only ADD the edge/device definition and the
+// edge_device_* permission propagation to each existing type.
+//
+// How to load this schema into SpiceDB:
+//   zed schema write --endpoint=localhost:50051 --token=testtesttesttest schema/edge.zed
+//
+// Or via SpiceDB HTTP API:
+//   cat schema/edge.zed | curl -s -X PUT http://localhost:8443/v1/schema \
+//     -H "Authorization: Bearer testtesttesttest" \
+//     -H "Content-Type: application/json" \
+//     -d "{\"schema\": $(jq -Rs .)}"
+
+// ---------------------------------------------------------------------------
+// RBAC core types (simplified — matches the subset needed for edge/device ACL)
+// ---------------------------------------------------------------------------
+
+definition rbac/principal {}
+
+definition rbac/group {
+    relation t_member: rbac/principal | rbac/group#member
+    relation t_owner: rbac/tenant
+    permission member = t_member
+    permission owner  = t_owner
+}
+
+definition rbac/role {
+    relation t_child: rbac/role
+
+    // V1 permission leaf relations — set true/false when a role is created by RBAC.
+    // The KSL compiler generates these automatically from add_v1_based_permission().
+    relation edge_device_devices_read:  rbac/principal:*
+    relation edge_device_devices_write: rbac/principal:*
+    relation edge_device_devices_all:   rbac/principal:*
+    relation edge_all_read:             rbac/principal:*
+    relation edge_all_write:            rbac/principal:*
+    relation edge_all_all:              rbac/principal:*
+    relation all_all_all:               rbac/principal:*
+
+    // Derived permissions — union of all matching v1 leaves + child role inheritance
+    permission edge_device_view   = edge_device_devices_read  + edge_device_devices_all + edge_all_read  + edge_all_all + all_all_all + t_child->edge_device_view
+    permission edge_device_update = edge_device_devices_write + edge_device_devices_all + edge_all_write + edge_all_all + all_all_all + t_child->edge_device_update
+    permission edge_device_delete = edge_device_devices_write + edge_device_devices_all + edge_all_write + edge_all_all + all_all_all + t_child->edge_device_delete
+    permission edge_device_manage = edge_device_devices_all   + edge_all_all           + all_all_all    + t_child->edge_device_manage
+}
+
+definition rbac/role_binding {
+    relation t_subject: rbac/principal | rbac/group#member
+    relation t_role: rbac/role
+
+    // Intersection: subject must be in binding AND role must have the permission
+    permission edge_device_view   = t_subject & t_role->edge_device_view
+    permission edge_device_update = t_subject & t_role->edge_device_update
+    permission edge_device_delete = t_subject & t_role->edge_device_delete
+    permission edge_device_manage = t_subject & t_role->edge_device_manage
+}
+
+definition rbac/platform {
+    relation t_binding: rbac/role_binding
+
+    permission edge_device_view   = t_binding->edge_device_view
+    permission edge_device_update = t_binding->edge_device_update
+    permission edge_device_delete = t_binding->edge_device_delete
+    permission edge_device_manage = t_binding->edge_device_manage
+}
+
+definition rbac/tenant {
+    relation t_binding: rbac/role_binding
+    relation t_platform: rbac/platform
+
+    // Union: direct binding OR platform-level grant
+    permission edge_device_view   = t_binding->edge_device_view   + t_platform->edge_device_view
+    permission edge_device_update = t_binding->edge_device_update + t_platform->edge_device_update
+    permission edge_device_delete = t_binding->edge_device_delete + t_platform->edge_device_delete
+    permission edge_device_manage = t_binding->edge_device_manage + t_platform->edge_device_manage
+}
+
+definition rbac/workspace {
+    relation t_binding: rbac/role_binding
+    relation t_parent: rbac/workspace | rbac/tenant
+
+    // Union: direct binding OR inherited from parent workspace/tenant
+    permission edge_device_view   = t_binding->edge_device_view   + t_parent->edge_device_view
+    permission edge_device_update = t_binding->edge_device_update + t_parent->edge_device_update
+    permission edge_device_delete = t_binding->edge_device_delete + t_parent->edge_device_delete
+    permission edge_device_manage = t_binding->edge_device_manage + t_parent->edge_device_manage
+}
+
+// ---------------------------------------------------------------------------
+// Edge Device Service — new resource type
+// ---------------------------------------------------------------------------
+
+definition edge/device {
+    // Every device belongs to exactly one workspace.
+    // Creating this relation in SpiceDB is the job of the inventory-consumer
+    // (or a custom consumer) reading from the Kafka outbox topic.
+    relation t_workspace: rbac/workspace
+
+    // Permissions delegated from the workspace via the t_workspace relation.
+    // SpiceDB evaluates these by traversing: edge/device → t_workspace → rbac/workspace → ...
+    permission view      = t_workspace->edge_device_view
+    permission update    = t_workspace->edge_device_update
+    permission delete    = t_workspace->edge_device_delete
+    permission manage    = t_workspace->edge_device_manage
+
+    // Convenience: expose the workspace relation as a permission (for LookupResources)
+    permission workspace = t_workspace
+}

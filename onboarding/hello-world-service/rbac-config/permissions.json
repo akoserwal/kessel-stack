@@ -1,0 +1,24 @@
+{
+    "_comment": "Place this file at rbac-config/configs/prod/permissions/edge.json. The filename 'edge' becomes the application name in permission strings: edge:devices:read, edge:devices:write, edge:devices:*",
+
+    "*": [
+        { "verb": "read" },
+        { "verb": "*" }
+    ],
+
+    "devices": [
+        {
+            "verb": "read",
+            "description": "View edge devices and their metadata"
+        },
+        {
+            "verb": "write",
+            "description": "Register, update, and deregister edge devices",
+            "requires": ["read"]
+        },
+        {
+            "verb": "*",
+            "description": "All operations on edge devices"
+        }
+    ]
+}

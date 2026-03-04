@@ -1,0 +1,40 @@
+{
+    "_comment": "Place this file at rbac-config/configs/prod/roles/my-service.json. 'system' roles are seeded into every tenant automatically. 'platform_default' roles are assigned to all principals by default. 'admin_default' roles are assigned to org admins. Bump 'version' whenever you change the role — the RBAC service uses version to detect updates.",
+
+    "roles": [
+        {
+            "name": "My Service Administrator",
+            "description": "Perform any available operation on any My Service resource.",
+            "system": true,
+            "platform_default": false,
+            "admin_default": true,
+            "version": 1,
+            "access": [
+                { "permission": "my-service:*:*" }
+            ]
+        },
+        {
+            "name": "My Service Resource Viewer",
+            "description": "View My Service resources.",
+            "system": true,
+            "platform_default": true,
+            "admin_default": false,
+            "version": 1,
+            "access": [
+                { "permission": "my-service:my-resources:read" }
+            ]
+        },
+        {
+            "name": "My Service Resource Editor",
+            "description": "Create, update, and delete My Service resources.",
+            "system": true,
+            "platform_default": false,
+            "admin_default": false,
+            "version": 1,
+            "access": [
+                { "permission": "my-service:my-resources:read" },
+                { "permission": "my-service:my-resources:write" }
+            ]
+        }
+    ]
+}

@@ -217,14 +217,14 @@ curl http://localhost:9090/metrics | head -20
 | Node Exporter | `9100` | Host metrics |
 | Health Exporter | `9094` | Service health → Prometheus bridge |
 
-### Monitoring Dashboard & Management Console
+<!-- ### Monitoring Dashboard & Management Console
 
 Two local web tools ship with the box. See [docs/monitoring-and-console.md](docs/monitoring-and-console.md) for full details.
 
 | Tool | URL | Start |
 |------|-----|-------|
 | Monitoring dashboard | `http://localhost:8888` | `cd monitoring && python3 app.py` |
-| Management console | `http://localhost:8889` | `cd console && go run .` |
+| Management console | `http://localhost:8889` | `cd console && go run .` | -->
 
 ## Data Flows
 

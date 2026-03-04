@@ -1,0 +1,32 @@
+{
+  "name": "edge-device-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres-edge-devices",
+    "database.port": "5432",
+    "database.user": "edge",
+    "database.password": "secretpassword",
+    "database.dbname": "edge",
+    "topic.prefix": "edge",
+    "schema.include.list": "edge",
+    "table.include.list": "edge.outbox",
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_edge_outbox",
+    "publication.name": "dbz_publication_edge_outbox",
+    "publication.autocreate.mode": "filtered",
+    "snapshot.mode": "never",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregateid",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.field.event.type": "aggregatetype",
+    "transforms.outbox.route.by.field": "aggregatetype",
+    "transforms.outbox.route.topic.replacement": "outbox.event.edge.${routedByValue}",
+    "transforms.outbox.table.expand.json.payload": "true",
+    "transforms.outbox.table.fields.additional.placement": "operation:header,version:header",
+    "poll.interval.ms": "500",
+    "max.batch.size": "2048",
+    "max.queue.size": "8192"
+  }
+}

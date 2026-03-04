@@ -1,0 +1,54 @@
+{
+  "name": "my-service-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+
+    "_comment_database": "Connection to your service's PostgreSQL database.",
+    "database.hostname": "postgres-my-service",
+    "database.port": "5432",
+    "database.user": "my_service_user",
+    "database.password": "secretpassword",
+    "database.dbname": "my_service",
+
+    "_comment_prefix": "topic.prefix appears in connector-internal topic names and replication slot names. Use a short, unique identifier for your service. Does NOT affect the final routed topic name.",
+    "topic.prefix": "my-service",
+
+    "_comment_tables": "Only watch the outbox table — not your main application tables.",
+    "schema.include.list": "my_service",
+    "table.include.list": "my_service.outbox",
+
+    "_comment_replication": "plugin.name: use 'pgoutput' (built into Postgres 10+). slot.name: unique replication slot name per connector. publication.name: must match the slot.",
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_my_service_outbox",
+    "publication.name": "dbz_publication_my_service_outbox",
+    "publication.autocreate.mode": "filtered",
+
+    "_comment_snapshot": "never: only capture ongoing changes. Your outbox is ephemeral (INSERT+DELETE), so snapshotting initial rows would produce duplicates. Use 'never' unless you have a specific reason not to.",
+    "snapshot.mode": "never",
+
+    "_comment_transforms": "The EventRouter SMT is Debezium's built-in outbox pattern transform. It reads aggregatetype from the INSERT row and routes to the appropriate Kafka topic.",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+
+    "_comment_field_mapping": "Map EventRouter fields to your outbox table columns. These must match your DDL column names.",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregateid",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.field.event.type": "aggregatetype",
+
+    "_comment_routing": "route.by.field: the column whose value becomes the topic suffix. route.topic.replacement: the final topic name pattern. ${routedByValue} is replaced with the aggregatetype column value. Example: aggregatetype='widgets' → topic 'outbox.event.my-service.widgets'",
+    "transforms.outbox.route.by.field": "aggregatetype",
+    "transforms.outbox.route.topic.replacement": "outbox.event.my-service.${routedByValue}",
+
+    "_comment_payload": "expand.json.payload: parse the payload column as JSON rather than emitting it as a raw string. Required if payload is JSONB and the consumer expects a JSON object.",
+    "transforms.outbox.table.expand.json.payload": "true",
+
+    "_comment_headers": "Additional columns to forward as Kafka message headers. 'operation' lets the consumer distinguish creates from deletes without parsing the payload. 'version' lets the consumer handle schema evolution.",
+    "transforms.outbox.table.fields.additional.placement": "operation:header,version:header",
+
+    "_comment_performance": "Lower poll interval for lower latency (at the cost of slightly more database load). 500ms is a good starting point for dev/stage; adjust for production.",
+    "poll.interval.ms": "500",
+    "max.batch.size": "2048",
+    "max.queue.size": "8192"
+  }
+}
