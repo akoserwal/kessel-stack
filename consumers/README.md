@@ -3,7 +3,7 @@
 **Last Updated:** 2026-02-17
 **Status:** ✅ Production-Ready
 
-This directory contains the Kafka consumers for the Kessel-in-a-Box CDC (Change Data Capture) pipeline.
+This directory contains the Kafka consumers for the Kessel Stack CDC (Change Data Capture) pipeline.
 
 ---
 

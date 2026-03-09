@@ -84,7 +84,7 @@ log_info "Setting up cache key namespaces..."
 cat > "${PROJECT_ROOT}/docs/cache-keys.md" << 'EOF'
 # Redis Cache Key Patterns
 
-This document describes the cache key patterns used in Kessel-in-a-Box.
+This document describes the cache key patterns used in Kessel Stack.
 
 ## Key Namespaces
 

@@ -1,4 +1,4 @@
--- Kessel-in-a-Box: RBAC Database Initialization
+-- Kessel Stack: RBAC Database Initialization
 -- Minimal setup — the real insights-rbac (Django) runs its own migrations
 
 -- Enable required extensions

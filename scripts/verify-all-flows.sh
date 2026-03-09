@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kessel-in-a-Box: Complete Flow Verification Script
+# Kessel Stack: Complete Flow Verification Script
 # Tests all APIs with curl and grpcurl, captures responses to files
 
 set -e
@@ -51,7 +51,7 @@ run_test() {
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║      Kessel-in-a-Box: Complete Flow Verification          ║
+║      Kessel Stack: Complete Flow Verification          ║
 ║                                                            ║
 ║  Testing all APIs with curl and grpcurl                    ║
 ║  Capturing responses to files                              ║
@@ -497,7 +497,7 @@ echo ""
 
 # Generate summary file
 cat > "$OUTPUT_DIR/SUMMARY.md" << EOF
-# Kessel-in-a-Box: Flow Verification Results
+# Kessel Stack: Flow Verification Results
 
 **Date:** $(date '+%Y-%m-%d %H:%M:%S')
 **Output Directory:** $OUTPUT_DIR

@@ -32,7 +32,7 @@ onboard a new service into Kessel.
               │                            │
               ▼                            ▼
         postgres-edge-devices        kafka:29092
-        edge.devices table           (from kessel-in-a-box-real)
+        edge.devices table           (from kessel-stack-real)
         edge.outbox table
               │
               ▼
@@ -59,7 +59,7 @@ onboard a new service into Kessel.
 
 ## Prerequisites
 
-- kessel-in-a-box-real is running (`bash scripts/deploy.sh` from project root)
+- kessel-stack-real is running (`bash scripts/deploy.sh` from project root)
 - Docker and Docker Compose
 - `jq` installed
 - `go 1.21+` (only needed if you want to run locally without Docker)
@@ -287,7 +287,7 @@ docker logs edge-device-service -f
 ## Running locally (without Docker)
 
 ```bash
-# Prerequisites: kessel-in-a-box-real running, and postgres-edge-devices running
+# Prerequisites: kessel-stack-real running, and postgres-edge-devices running
 
 # Start just the postgres
 docker compose -f compose/docker-compose.yml up -d postgres-edge-devices

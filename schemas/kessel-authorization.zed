@@ -1,7 +1,7 @@
 /**
  * Kessel Authorization Schema
  *
- * This schema defines the authorization model for Kessel-in-a-Box,
+ * This schema defines the authorization model for Kessel Stack,
  * implementing relationship-based access control (ReBAC) for:
  * - Workspaces (multi-tenant organization)
  * - Users (subjects)

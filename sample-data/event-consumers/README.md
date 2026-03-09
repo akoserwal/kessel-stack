@@ -9,7 +9,7 @@ These consumers demonstrate how to build event-driven integrations with Kessel b
 ## Prerequisites
 
 - Node.js 16+ installed
-- Kessel-in-a-Box running with Phase 2 (Kafka + CDC)
+- Kessel Stack running with Phase 2 (Kafka + CDC)
 - Debezium connector configured
 
 ## Setup

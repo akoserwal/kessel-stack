@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Cleanup Script for Kessel-in-a-Box
+# Cleanup Script for Kessel Stack
 # Stops and removes all containers, volumes, and networks
 
 set -euo pipefail
@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
             cat << EOF
 Usage: $0 [OPTIONS]
 
-Clean up Kessel-in-a-Box environment
+Clean up Kessel Stack environment
 
 OPTIONS:
     --volumes    Also remove data volumes (deletes all data!)
@@ -77,7 +77,7 @@ EOF
 done
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Kessel-in-a-Box Cleanup"
+echo "  Kessel Stack Cleanup"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo
 

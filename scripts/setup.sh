@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Kessel-in-a-Box Setup Script
+# Kessel Stack Setup Script
 # One-command deployment for local Kessel environment
 
 set -euo pipefail
@@ -57,7 +57,7 @@ print_banner() {
 ║   ██║  ██╗███████╗███████║███████║███████╗███████╗         ║
 ║   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚══════╝╚══════╝         ║
 ║                                                              ║
-║              Kessel-in-a-Box Setup v1.0.0                   ║
+║              Kessel Stack Setup v1.0.0                   ║
 ║        One-command local development environment            ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝

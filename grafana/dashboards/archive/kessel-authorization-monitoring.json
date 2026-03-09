@@ -36,7 +36,7 @@
       "id": 999,
       "options": {
         "mode": "markdown",
-        "content": "⚠️ **Minimal Demo Environment** - This dashboard is adapted for kessel-in-a-box which only includes SpiceDB and core observability. Full production services (inventory-api, relations-api, Kafka, Redis) are not available."
+        "content": "⚠️ **Minimal Demo Environment** - This dashboard is adapted for kessel-stack which only includes SpiceDB and core observability. Full production services (inventory-api, relations-api, Kafka, Redis) are not available."
       },
       "pluginVersion": "10.2.2",
       "type": "text"

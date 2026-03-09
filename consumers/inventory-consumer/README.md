@@ -159,7 +159,7 @@ inventory-consumer-group   inventory.hosts.events         2          9          
 
 The official consumer exposes Prometheus metrics on port 9000 (if configured).
 
-**To enable metrics in kessel-in-a-box:**
+**To enable metrics in kessel-stack:**
 
 1. Add port mapping in docker-compose.kafka.yml:
    ```yaml
@@ -314,7 +314,7 @@ make local-build
 
 **What changed:**
 1. ✅ Removed stub implementation files (main.go, Dockerfile, go.mod)
-2. ✅ Created config.yaml with kessel-in-a-box settings
+2. ✅ Created config.yaml with kessel-stack settings
 3. ✅ Updated docker-compose.kafka.yml to use official image
 4. ✅ Updated documentation
 
@@ -352,10 +352,10 @@ This directory now uses the **official production-ready inventory-consumer** fro
 ✅ **Advanced features** (retry logic, metrics, authentication)
 ✅ **Simple integration** via config file and pre-built image
 
-The config.yaml file has been adapted for kessel-in-a-box with the correct:
+The config.yaml file has been adapted for kessel-stack with the correct:
 - Kafka broker addresses
 - Topic names
 - Inventory API endpoint
 - Retry settings
 
-**Ready to use in kessel-in-a-box!**
+**Ready to use in kessel-stack!**

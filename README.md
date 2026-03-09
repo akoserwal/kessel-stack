@@ -1,12 +1,12 @@
-# Kessel-in-a-Box
+# Kessel Stack
 
 **Complete local development environment for Kessel authorization platform**
 
 A production-aligned, event-driven authorization system demonstrating Google Zanzibar-based Relationship-Based Access Control (ReBAC) with Change Data Capture (CDC) integration.
 
-## What is Kessel-in-a-Box?
+## What is Kessel Stack?
 
-Kessel-in-a-box is a **complete, working implementation** of Red Hat's Kessel platform that runs entirely on your local machine using real upstream service images. It demonstrates:
+Kessel Stack is a **complete, working implementation** of Red Hat's Kessel platform that runs entirely on your local machine using real upstream service images. It demonstrates:
 
 - **ReBAC Authorization** using SpiceDB (Google Zanzibar)
 - **Event-Driven Architecture** with Kafka CDC pipeline (transactional outbox pattern)

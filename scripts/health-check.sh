@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Health Check Script for Kessel-in-a-Box
+# Health Check Script for Kessel Stack
 # Verifies all services are running correctly
 
 set -euo pipefail

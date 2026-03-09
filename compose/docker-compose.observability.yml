@@ -1,4 +1,4 @@
-# Kessel-in-a-Box: Phase 4 - Observability
+# Kessel Stack: Phase 4 - Observability
 # Adds comprehensive monitoring with Prometheus, Grafana, and Jaeger
 
 services:

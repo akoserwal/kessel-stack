@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Kessel-in-a-Box: Pre-deployment Port Check Script
+# Kessel Stack: Pre-deployment Port Check Script
 # Checks if all required ports are available before deployment
 
 set -e
@@ -24,7 +24,7 @@ log_port() { echo -e "${CYAN}[PORT]${NC} $1"; }
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║        Kessel-in-a-Box Pre-Deployment Check                ║
+║        Kessel Stack Pre-Deployment Check                ║
 ║                                                            ║
 ║  Verifying system readiness and port availability         ║
 ║                                                            ║
@@ -366,7 +366,7 @@ parse_arguments() {
 
 Usage: $0 [OPTIONS]
 
-Pre-deployment check for Kessel-in-a-Box
+Pre-deployment check for Kessel Stack
 
 Options:
   --kill          Automatically kill processes on blocked ports

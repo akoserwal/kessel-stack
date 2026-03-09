@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kessel-in-a-Box: Port Cleanup Script
+# Kessel Stack: Port Cleanup Script
 # Frees up ports required for Kessel deployment
 
 set -e
@@ -20,7 +20,7 @@ log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║            Kessel-in-a-Box Port Cleanup                    ║
+║            Kessel Stack Port Cleanup                    ║
 ║                                                            ║
 ║  Free up ports required for deployment                    ║
 ║                                                            ║

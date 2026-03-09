@@ -1,4 +1,4 @@
-# Kessel-in-a-Box: Core Stack (Updated for Phase 5)
+# Kessel Stack: Core Stack (Updated for Phase 5)
 # Complete environment with 3 PostgreSQL instances + SpiceDB
 
 services:

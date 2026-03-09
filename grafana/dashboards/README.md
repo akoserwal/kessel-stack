@@ -1,4 +1,4 @@
-# Kessel-in-a-Box Grafana Dashboards
+# Kessel Stack Grafana Dashboards
 
 Updated: 2026-02-17
 
@@ -8,7 +8,7 @@ This directory contains **7 Grafana dashboards** - **5 essential dashboards** fo
 
 ## Important Context
 
-Kessel-in-a-box is a **MINIMAL DEMO** that includes:
+Kessel Stack is a **MINIMAL DEMO** that includes:
 - ✅ SpiceDB (authorization service)
 - ✅ PostgreSQL databases (3 instances)
 - ✅ Prometheus (metrics)
@@ -318,7 +318,7 @@ These were removed to simplify the dashboard list:
 - `kessel-overview.json` - Redundant with Kessel Demo Overview
 - `spicedb-overview.json` - Redundant with Kessel SpiceDB Demo (which is better)
 
-**Why archived:** Original dashboards require services not in kessel-in-a-box. Redundant dashboards provided similar functionality to kept dashboards.
+**Why archived:** Original dashboards require services not in kessel-stack. Redundant dashboards provided similar functionality to kept dashboards.
 
 ---
 
@@ -455,7 +455,7 @@ Each dashboard has a stable UID for consistent linking:
 **Total Archived Dashboards:** 8 (4 original + 4 redundant)
 
 **Dashboard Breakdown:**
-- ✅ **5 essential dashboards** - Work with kessel-in-a-box minimal demo
+- ✅ **5 essential dashboards** - Work with kessel-stack minimal demo
 - ⚠️ **2 optional dashboards** - Require insights-host-inventory and insights-rbac services
 - 🗂️ **8 archived dashboards** - Require full Kessel production deployment
 
@@ -473,4 +473,4 @@ Each dashboard has a stable UID for consistent linking:
 ---
 
 *Last updated: 2026-02-17*
-*Dashboards optimized for kessel-in-a-box minimal demo environment*
+*Dashboards optimized for kessel-stack minimal demo environment*

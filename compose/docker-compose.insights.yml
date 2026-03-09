@@ -1,4 +1,4 @@
-# Kessel-in-a-Box: Insights Services (Phase 7)
+# Kessel Stack: Insights Services (Phase 7)
 # Real insights-rbac from quay.io/cloudservices/rbac
 # Real insights-host-inventory from quay.io/cloudservices/insights-inventory
 # RBAC replication path: management_outbox → Debezium CDC → Kafka → rbac-kafka-consumer → Relations API
@@ -218,7 +218,18 @@ services:
   insights-inventory-migrate:
     image: quay.io/cloudservices/insights-inventory:${INSIGHTS_INVENTORY_TAG:-latest}
     container_name: insights-inventory-migrate
-    entrypoint: ["/bin/sh", "-c", "FLASK_APP=manage.py flask db upgrade"]
+    # insights-inventory:latest has a duplicate migration: 38324a692109_add_outbox_table.py
+    # tries to CREATE TABLE hbi.outbox even though an earlier migration (e54048e82617)
+    # already created it.  If the upgrade fails for that reason, stamp the offending
+    # revision as applied and re-run so any later migrations still execute.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        FLASK_APP=manage.py flask db upgrade && exit 0
+        echo "[migrate] Initial upgrade failed - checking for duplicate outbox table issue..."
+        FLASK_APP=manage.py flask db stamp 38324a692109 2>/dev/null
+        FLASK_APP=manage.py flask db upgrade
     environment:
       INVENTORY_DB_HOST: postgres-inventory
       INVENTORY_DB_PORT: "5432"

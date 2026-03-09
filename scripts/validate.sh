@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kessel-in-a-Box: Deployment Validation Script
+# Kessel Stack: Deployment Validation Script
 # Quick validation of deployment health
 
 set -e
@@ -45,13 +45,13 @@ check() {
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║        Kessel-in-a-Box: Deployment Validation              ║
+║        Kessel Stack: Deployment Validation              ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 EOF
 
 echo ""
-log_info "Validating Kessel-in-a-Box deployment..."
+log_info "Validating Kessel Stack deployment..."
 echo ""
 
 # 1. Docker Check
@@ -115,7 +115,7 @@ echo ""
 if [ $FAILED -eq 0 ]; then
     log_success "All validation checks passed!"
     echo ""
-    log_info "Your Kessel-in-a-Box deployment is healthy and ready to use."
+    log_info "Your Kessel Stack deployment is healthy and ready to use."
     echo ""
     echo "Next steps:"
     echo "  - Run tests:        ./scripts/run-all-tests.sh"

@@ -35,7 +35,7 @@
       },
       "id": 100,
       "options": {
-        "content": "<div style=\"text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%); border-radius: 8px;\">\n  <h1 style=\"margin: 0; font-size: 42px; color: #4299e1; font-weight: 700;\">Kessel SpiceDB Demo</h1>\n  <p style=\"margin: 15px 0 10px 0; font-size: 18px; color: #a0aec0;\">Authorization Performance Monitoring for Kessel-in-a-Box</p>\n  <p style=\"margin: 5px 0 0 0; font-size: 14px; color: #f6ad55; font-weight: 500;\">⚠️ Note: This is a minimal demo environment focusing on SpiceDB authorization. Inventory/Relations REST APIs are not included.</p>\n</div>",
+        "content": "<div style=\"text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%); border-radius: 8px;\">\n  <h1 style=\"margin: 0; font-size: 42px; color: #4299e1; font-weight: 700;\">Kessel SpiceDB Demo</h1>\n  <p style=\"margin: 15px 0 10px 0; font-size: 18px; color: #a0aec0;\">Authorization Performance Monitoring for Kessel Stack</p>\n  <p style=\"margin: 5px 0 0 0; font-size: 14px; color: #f6ad55; font-weight: 500;\">⚠️ Note: This is a minimal demo environment focusing on SpiceDB authorization. Inventory/Relations REST APIs are not included.</p>\n</div>",
         "mode": "html"
       },
       "pluginVersion": "10.2.2",

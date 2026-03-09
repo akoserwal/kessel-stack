@@ -1,4 +1,4 @@
--- Kessel-in-a-Box: SpiceDB Database Initialization
+-- Kessel Stack: SpiceDB Database Initialization
 -- Database for SpiceDB authorization engine
 -- Note: SpiceDB migration tool (spicedb-migrate) will create the actual tables
 

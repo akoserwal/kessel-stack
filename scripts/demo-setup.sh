@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Demo Setup Script
-# Prepares kessel-in-a-box for demo presentation using the stage schema
+# Prepares kessel-stack for demo presentation using the stage schema
 # Uses the real project-kessel/relations-api and project-kessel/inventory-api
 #
 
@@ -18,7 +18,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Kessel-in-a-Box Demo Setup${NC}"
+echo -e "${BLUE}  Kessel Stack Demo Setup${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
@@ -296,7 +296,7 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Demo Ready!${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
-echo -e "${GREEN}  kessel-in-a-box is running${NC}"
+echo -e "${GREEN}  kessel-stack is running${NC}"
 echo -e "${GREEN}  Demo data files ready (Relations API CreateTuples format)${NC}"
 echo ""
 echo -e "${YELLOW}Service URLs:${NC}"

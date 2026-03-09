@@ -101,7 +101,7 @@ echo "  Alert evaluation interval: 15s"
 cat > "${PROJECT_ROOT}/docs/observability-guide.md" << 'EOF'
 # Observability Guide
 
-This guide covers monitoring and observability for Kessel-in-a-Box.
+This guide covers monitoring and observability for Kessel Stack.
 
 ## Overview
 

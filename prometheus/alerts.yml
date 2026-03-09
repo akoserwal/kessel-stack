@@ -1,4 +1,4 @@
-# Prometheus Alert Rules for Kessel-in-a-Box
+# Prometheus Alert Rules for Kessel Stack
 
 groups:
   # SpiceDB Alerts

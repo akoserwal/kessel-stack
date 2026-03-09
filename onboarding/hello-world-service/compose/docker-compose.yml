@@ -1,6 +1,6 @@
 # edge-device-service: Hello World Kessel Integration
 #
-# Prerequisites: kessel-in-a-box-real is running (bash scripts/deploy.sh from project root).
+# Prerequisites: kessel-stack-real is running (bash scripts/deploy.sh from project root).
 # This compose file adds only the edge-device-service on top of the existing stack.
 #
 # Usage:
@@ -62,12 +62,12 @@ services:
       DB_PASSWORD: secretpassword
       DB_NAME: edge
 
-      # Kafka (from kessel-in-a-box-real)
+      # Kafka (from kessel-stack-real)
       KAFKA_BROKERS: "kafka:29092"
       KAFKA_TOPIC: "outbox.event.edge.devices"
       KAFKA_GROUP_ID: "edge-device-consumer"
 
-      # Kessel Relations API (from kessel-in-a-box-real)
+      # Kessel Relations API (from kessel-stack-real)
       RELATIONS_API_URL: "http://kessel-relations-api:8000"
 
       # SpiceDB namespace for edge/device resources

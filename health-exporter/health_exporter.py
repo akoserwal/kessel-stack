@@ -5,7 +5,7 @@ Health Check Exporter for Kessel Services
 This exporter calls health endpoints of services that don't expose
 Prometheus metrics and converts them to Prometheus format.
 
-NOTE: In kessel-in-a-box (minimal demo), no services are monitored
+NOTE: In kessel-stack (minimal demo), no services are monitored
 by this exporter. This exporter is included for future use or when
 deploying the full Kessel stack with inventory-api, relations-api, etc.
 

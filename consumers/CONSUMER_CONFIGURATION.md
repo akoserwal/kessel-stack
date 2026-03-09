@@ -3,13 +3,13 @@
 **Last Updated:** 2026-02-17
 **Status:** Production-Ready
 
-This document explains how the Kafka consumers are configured in kessel-in-a-box.
+This document explains how the Kafka consumers are configured in kessel-stack.
 
 ---
 
 ## Overview
 
-Kessel-in-a-box uses **two Kafka consumers** to process Change Data Capture (CDC) events from PostgreSQL databases:
+Kessel Stack uses **two Kafka consumers** to process Change Data Capture (CDC) events from PostgreSQL databases:
 
 | Consumer | Source | Status | Purpose |
 |----------|--------|--------|---------|
@@ -705,7 +705,7 @@ require github.com/IBM/sarama v1.42.1
 - Both subscribe to specific Kafka topics
 - Both connect to respective APIs
 - RBAC consumer is production-ready
-- Inventory consumer is placeholder for kessel-in-a-box
+- Inventory consumer is placeholder for kessel-stack
 
 **Old Consumer Removed:**
 - `relations-sink` was the original RBAC consumer

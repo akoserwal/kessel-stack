@@ -1,4 +1,4 @@
-# AlertManager Configuration for Kessel-in-a-Box
+# AlertManager Configuration for Kessel Stack
 
 global:
   resolve_timeout: 5m

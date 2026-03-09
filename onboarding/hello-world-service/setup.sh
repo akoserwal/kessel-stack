@@ -107,7 +107,7 @@ if [ "$HTTP_CODE" = "201" ]; then
     log_success "Connector registered"
 else
     log_error "Connector registration returned HTTP $HTTP_CODE"
-    log_error "Is kessel-in-a-box-real running? Check: curl $KAFKA_CONNECT/connectors"
+    log_error "Is kessel-stack-real running? Check: curl $KAFKA_CONNECT/connectors"
     exit 1
 fi
 

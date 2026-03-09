@@ -13,7 +13,7 @@ Caching permission check results and authorization data can dramatically improve
 
 ## Prerequisites
 
-- Kessel-in-a-Box Phase 1 + Phase 3 running
+- Kessel Stack Phase 1 + Phase 3 running
 - Node.js 16+ installed
 - Dependencies installed: `npm install`
 

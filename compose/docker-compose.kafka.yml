@@ -1,4 +1,4 @@
-# Kessel-in-a-Box: Event Streaming (Phase 6)
+# Kessel Stack: Event Streaming (Phase 6)
 # Kafka + Zookeeper for CDC pipeline
 
 services:
@@ -11,15 +11,16 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_SYNC_LIMIT: 2
       ZOOKEEPER_LOG4J_ROOT_LOGLEVEL: WARN
+      ZOOKEEPER_4LW_COMMANDS_WHITELIST: "ruok,stat,srvr"
     ports:
       - "${ZOOKEEPER_PORT:-2181}:2181"
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-logs:/var/lib/zookeeper/log
     healthcheck:
-      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181", "|", "grep", "imok"]
+      test: ["CMD-SHELL", "cub zk-ready localhost:2181 5 2>/dev/null"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
     networks:
       - kessel-network
@@ -65,7 +66,7 @@ services:
       KAFKA_LOG_RETENTION_HOURS: 168  # 7 days
       KAFKA_LOG_SEGMENT_BYTES: 1073741824  # 1GB
       KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000  # 5 minutes
-      KAFKA_COMPRESSION_TYPE: none
+      KAFKA_COMPRESSION_TYPE: uncompressed
 
       # JMX metrics
       KAFKA_JMX_PORT: 9101
@@ -129,7 +130,7 @@ services:
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
 
       # Producer compression — set to none so consumers without snappy/lz4 libs can read messages
-      CONNECT_PRODUCER_COMPRESSION_TYPE: none
+      CONNECT_PRODUCER_COMPRESSION_TYPE: uncompressed
 
       # Logging
       LOG_LEVEL: INFO
@@ -224,7 +225,7 @@ services:
 
   # Inventory Consumer - Official production-ready consumer from project-kessel
   # Repository: https://github.com/project-kessel/inventory-consumer
-  # Built locally from source (official image is AMD64 only, kessel-in-a-box supports ARM64)
+  # Built locally from source (official image is AMD64 only, kessel-stack supports ARM64)
   inventory-consumer:
     build:
       context: ../consumers/inventory-consumer
@@ -242,7 +243,7 @@ services:
       # Config file location inside container
       INVENTORY_CONSUMER_CONFIG: /config.yaml
     volumes:
-      # Mount config file (adapted for kessel-in-a-box)
+      # Mount config file (adapted for kessel-stack)
       - ../consumers/inventory-consumer/config.yaml:/config.yaml:ro
     networks:
       - kessel-network

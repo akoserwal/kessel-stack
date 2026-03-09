@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kessel-in-a-Box: Master Deployment Script
+# Kessel Stack: Master Deployment Script
 # Fully automated deployment from scratch
 
 set -e
@@ -37,7 +37,7 @@ fi
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║           Kessel-in-a-Box Deployment Script                ║
+║           Kessel Stack Deployment Script                ║
 ║                                                            ║
 ║  Automated deployment of complete Kessel stack             ║
 ║                                                            ║
@@ -161,6 +161,10 @@ deploy_phase5() {
         sleep 2
     done
     echo ""
+    if ! docker exec kessel-postgres-rbac pg_isready -U rbac &>/dev/null; then
+        log_error "Databases did not become ready in time — aborting"
+        exit 1
+    fi
 
     # Run SpiceDB migration
     log_info "Running SpiceDB migration..."
@@ -189,20 +193,19 @@ deploy_phase5() {
         log_warn "  Run it locally on port 8000 (mapped to host port 8082)"
         log_warn "  Other containers will route to host.docker.internal"
     else
-        log_info "Building Kessel Relations API..."
-        docker compose -f compose/docker-compose.yml \
-                       -f compose/docker-compose.kessel.yml \
-                       build kessel-relations-api
-
         log_info "Starting Kessel Relations API..."
         docker compose -f compose/docker-compose.yml \
                        -f compose/docker-compose.kessel.yml \
                        up -d kessel-relations-api
 
-        # Wait for Relations API (gRPC-only, no HTTP health endpoint)
+        # Wait for Relations API — use POST (endpoint is write-only); drop -f so any
+        # HTTP response (including 400) means the server is up.
         log_info "Waiting for Relations API to be ready..."
         for i in {1..60}; do
-            if grpcurl -plaintext localhost:${RELATIONS_GRPC_PORT:-9001} grpc.health.v1.Health/Check &>/dev/null; then
+            if curl -s -o /dev/null -X POST \
+                    -H 'Content-Type: application/json' \
+                    -d '{"tuples":[]}' \
+                    http://localhost:${RELATIONS_GRPC_PORT:-8082}/api/authz/v1beta1/tuples 2>/dev/null; then
                 log_success "Relations API ready"
                 break
             fi
@@ -218,20 +221,18 @@ deploy_phase5() {
         log_warn "  Run it locally on port 8000 (mapped to host port 8083)"
         log_warn "  Other containers will route to host.docker.internal"
     else
-        log_info "Building Kessel Inventory API..."
-        docker compose -f compose/docker-compose.yml \
-                       -f compose/docker-compose.kessel.yml \
-                       build kessel-inventory-api
-
         log_info "Starting Kessel Inventory API..."
+        # --no-deps: skip the compose-level service_healthy check on kessel-relations-api.
+        # We already waited for it above; this prevents a false failure when its Docker
+        # healthcheck disagrees with our explicit wait (e.g. stale SpiceDB data).
         docker compose -f compose/docker-compose.yml \
                        -f compose/docker-compose.kessel.yml \
-                       up -d kessel-inventory-api
+                       up -d --no-deps kessel-inventory-api
 
-        # Wait for Inventory API (gRPC-only, no HTTP health endpoint)
+        # Wait for Inventory API
         log_info "Waiting for Inventory API to be ready..."
         for i in {1..60}; do
-            if grpcurl -plaintext localhost:${INVENTORY_GRPC_PORT:-9002} grpc.health.v1.Health/Check &>/dev/null; then
+            if curl -sf http://localhost:${KESSEL_INVENTORY_PORT:-8083}/api/kessel/v1/livez &>/dev/null; then
                 log_success "Inventory API ready"
                 break
             fi
@@ -259,10 +260,11 @@ deploy_phase6() {
                    -f compose/docker-compose.kafka.yml \
                    up -d zookeeper
 
-    # Wait for Zookeeper
+    # Wait for Zookeeper — use cub zk-ready (available in confluentinc images,
+    # avoids nc/ruok 4lw whitelist issues)
     log_info "Waiting for Zookeeper to be ready..."
     for i in {1..30}; do
-        if docker exec kessel-zookeeper bash -c "echo ruok | nc localhost 2181" 2>/dev/null | grep -q imok; then
+        if docker exec kessel-zookeeper bash -c "cub zk-ready localhost:2181 5 2>/dev/null"; then
             log_success "Zookeeper ready"
             break
         fi
@@ -378,7 +380,7 @@ deploy_phase7() {
         # Wait for insights-rbac
         log_info "Waiting for insights-rbac to be ready..."
         for i in {1..60}; do
-            if curl -sf http://localhost:8080/health &>/dev/null; then
+            if curl -sf http://localhost:8080/api/rbac/v1/status/ &>/dev/null; then
                 log_success "insights-rbac ready"
                 break
             fi
@@ -544,7 +546,10 @@ verify_deployment() {
 
     if [ "${SKIP_RELATIONS_API:-false}" = "true" ]; then
         echo "  - Kessel Relations API: SKIPPED (local dev mode)"
-    elif grpcurl -plaintext localhost:${RELATIONS_GRPC_PORT:-9001} grpc.health.v1.Health/Check &>/dev/null; then
+    elif curl -s -o /dev/null -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"tuples":[]}' \
+              http://localhost:${RELATIONS_GRPC_PORT:-8082}/api/authz/v1beta1/tuples 2>/dev/null; then
         echo "  ✓ Kessel Relations API: SERVING"
     else
         echo -e "  ${RED}✗${NC} Kessel Relations API: NOT RESPONDING"
@@ -553,7 +558,7 @@ verify_deployment() {
 
     if [ "${SKIP_INVENTORY_API:-false}" = "true" ]; then
         echo "  - Kessel Inventory API: SKIPPED (local dev mode)"
-    elif grpcurl -plaintext localhost:${INVENTORY_GRPC_PORT:-9002} grpc.health.v1.Health/Check &>/dev/null; then
+    elif curl -sf http://localhost:${KESSEL_INVENTORY_PORT:-8083}/api/kessel/v1/livez &>/dev/null; then
         echo "  ✓ Kessel Inventory API: SERVING"
     else
         echo -e "  ${RED}✗${NC} Kessel Inventory API: NOT RESPONDING"
@@ -748,7 +753,10 @@ deploy_minimal() {
 
     log_info "Waiting for Relations API..."
     for i in {1..30}; do
-        if grpcurl -plaintext localhost:${RELATIONS_GRPC_PORT:-9001} grpc.health.v1.Health/Check &>/dev/null; then
+        if curl -s -o /dev/null -X POST \
+                -H 'Content-Type: application/json' \
+                -d '{"tuples":[]}' \
+                http://localhost:${RELATIONS_GRPC_PORT:-8082}/api/authz/v1beta1/tuples 2>/dev/null; then
             log_success "Relations API ready"
             break
         fi
@@ -815,7 +823,10 @@ verify_minimal() {
         all_healthy=false
     fi
 
-    if grpcurl -plaintext localhost:${RELATIONS_GRPC_PORT:-9001} grpc.health.v1.Health/Check &>/dev/null; then
+    if curl -s -o /dev/null -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"tuples":[]}' \
+              http://localhost:${RELATIONS_GRPC_PORT:-8082}/api/authz/v1beta1/tuples 2>/dev/null; then
         echo "  ✓ Kessel Relations API: SERVING"
     else
         echo -e "  ${RED}✗${NC} Kessel Relations API: NOT RESPONDING"
@@ -823,6 +834,144 @@ verify_minimal() {
     fi
 
     [ "$all_healthy" = true ] && return 0 || return 1
+}
+
+# ---------------------------------------------------------------------------
+# deploy_kafka_minimal: Zookeeper + Kafka only (no Connect, no consumers)
+# Used by --kessel-core-rbac and --kessel-core-hbi
+# ---------------------------------------------------------------------------
+deploy_kafka_minimal() {
+    cd "$PROJECT_ROOT"
+
+    log_info "Starting Zookeeper..."
+    docker compose -f compose/docker-compose.yml \
+                   -f compose/docker-compose.kessel.yml \
+                   -f compose/docker-compose.kafka.yml \
+                   up -d zookeeper
+
+    log_info "Waiting for Zookeeper to be ready..."
+    for i in {1..30}; do
+        if docker exec kessel-zookeeper bash -c "cub zk-ready localhost:2181 5 2>/dev/null"; then
+            log_success "Zookeeper ready"
+            break
+        fi
+        echo -n "."
+        sleep 2
+    done
+    echo ""
+
+    log_info "Starting Kafka..."
+    docker compose -f compose/docker-compose.yml \
+                   -f compose/docker-compose.kessel.yml \
+                   -f compose/docker-compose.kafka.yml \
+                   up -d kafka
+
+    log_info "Waiting for Kafka to be ready..."
+    for i in {1..60}; do
+        if docker exec kessel-kafka kafka-broker-api-versions --bootstrap-server localhost:9092 &>/dev/null; then
+            log_success "Kafka ready"
+            break
+        fi
+        echo -n "."
+        sleep 2
+    done
+    echo ""
+}
+
+# ---------------------------------------------------------------------------
+# verify_kessel_core: SpiceDB + Relations API + Inventory API health
+# ---------------------------------------------------------------------------
+verify_kessel_core() {
+    local all_healthy=true
+
+    log_info "Checking kessel-core containers..."
+    for container in kessel-postgres-spicedb kessel-spicedb \
+                     kessel-postgres-kessel-inventory kessel-inventory-api \
+                     kessel-relations-api; do
+        if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
+            echo -e "  ✓ ${container}"
+        else
+            echo -e "  ${RED}✗${NC} ${container} (not running)"
+            all_healthy=false
+        fi
+    done
+
+    echo ""
+    log_info "Checking service health..."
+
+    if curl -sf http://localhost:8443/healthz | grep -q "SERVING"; then
+        echo "  ✓ SpiceDB: SERVING"
+    else
+        echo -e "  ${RED}✗${NC} SpiceDB: NOT RESPONDING"
+        all_healthy=false
+    fi
+
+    if curl -s -o /dev/null -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"tuples":[]}' \
+              http://localhost:${RELATIONS_GRPC_PORT:-8082}/api/authz/v1beta1/tuples 2>/dev/null; then
+        echo "  ✓ Kessel Relations API: SERVING"
+    else
+        echo -e "  ${RED}✗${NC} Kessel Relations API: NOT RESPONDING"
+        all_healthy=false
+    fi
+
+    if curl -sf http://localhost:${KESSEL_INVENTORY_PORT:-8083}/api/kessel/v1/livez &>/dev/null; then
+        echo "  ✓ Kessel Inventory API: SERVING"
+    else
+        echo -e "  ${RED}✗${NC} Kessel Inventory API: NOT RESPONDING"
+        all_healthy=false
+    fi
+
+    [ "$all_healthy" = true ] && return 0 || return 1
+}
+
+# ---------------------------------------------------------------------------
+# verify_kessel_core_rbac: kessel-core + insights-rbac
+# ---------------------------------------------------------------------------
+verify_kessel_core_rbac() {
+    verify_kessel_core || return 1
+
+    echo ""
+    log_info "Checking insights-rbac..."
+    if docker ps --format '{{.Names}}' | grep -q "^insights-rbac$"; then
+        echo -e "  ✓ insights-rbac"
+    else
+        echo -e "  ${RED}✗${NC} insights-rbac (not running)"
+        return 1
+    fi
+
+    if curl -sf http://localhost:8080/api/rbac/v1/status/ &>/dev/null; then
+        echo "  ✓ Insights RBAC: healthy"
+        return 0
+    else
+        echo -e "  ${RED}✗${NC} Insights RBAC: NOT RESPONDING"
+        return 1
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# verify_kessel_core_hbi: kessel-core + insights-host-inventory
+# ---------------------------------------------------------------------------
+verify_kessel_core_hbi() {
+    verify_kessel_core || return 1
+
+    echo ""
+    log_info "Checking insights-host-inventory..."
+    if docker ps --format '{{.Names}}' | grep -q "^insights-host-inventory$"; then
+        echo -e "  ✓ insights-host-inventory"
+    else
+        echo -e "  ${RED}✗${NC} insights-host-inventory (not running)"
+        return 1
+    fi
+
+    if curl -sf http://localhost:8081/health &>/dev/null; then
+        echo "  ✓ Insights Host Inventory: healthy"
+        return 0
+    else
+        echo -e "  ${RED}✗${NC} Insights Host Inventory: NOT RESPONDING"
+        return 1
+    fi
 }
 
 # Main deployment flow
@@ -867,6 +1016,67 @@ main() {
                 deploy_minimal
                 verify_minimal && exit 0 || exit 1
                 ;;
+            --kessel-core)
+                # kessel-core: SpiceDB + Relations API + Inventory API
+                # No Kafka, no CDC, no Insights services.
+                check_prerequisites
+                cleanup_existing
+                create_network
+                deploy_phase5
+                verify_kessel_core && log_success "kessel-core is up!" && exit 0 || exit 1
+                ;;
+            --kessel-core-rbac)
+                # kessel-core + Kafka + insights-rbac
+                check_prerequisites
+                cleanup_existing
+                create_network
+                deploy_phase5
+                deploy_kafka_minimal
+                cd "$PROJECT_ROOT"
+                log_info "Starting insights-rbac..."
+                docker compose -f compose/docker-compose.yml \
+                               -f compose/docker-compose.kessel.yml \
+                               -f compose/docker-compose.kafka.yml \
+                               -f compose/docker-compose.insights.yml \
+                               up -d insights-rbac
+                log_info "Waiting for insights-rbac to be ready..."
+                for i in {1..60}; do
+                    if curl -sf http://localhost:8080/api/rbac/v1/status/ &>/dev/null; then
+                        log_success "insights-rbac ready"
+                        break
+                    fi
+                    echo -n "."
+                    sleep 2
+                done
+                echo ""
+                verify_kessel_core_rbac && log_success "kessel-core + RBAC is up!" && exit 0 || exit 1
+                ;;
+            --kessel-core-hbi)
+                # kessel-core + Kafka + insights-host-inventory
+                check_prerequisites
+                cleanup_existing
+                create_network
+                deploy_phase5
+                deploy_kafka_minimal
+                cd "$PROJECT_ROOT"
+                log_info "Starting insights-host-inventory..."
+                docker compose -f compose/docker-compose.yml \
+                               -f compose/docker-compose.kessel.yml \
+                               -f compose/docker-compose.kafka.yml \
+                               -f compose/docker-compose.insights.yml \
+                               up -d --no-deps insights-host-inventory
+                log_info "Waiting for insights-host-inventory to be ready..."
+                for i in {1..60}; do
+                    if curl -sf http://localhost:8081/health &>/dev/null; then
+                        log_success "insights-host-inventory ready"
+                        break
+                    fi
+                    echo -n "."
+                    sleep 2
+                done
+                echo ""
+                verify_kessel_core_hbi && log_success "kessel-core + HBI is up!" && exit 0 || exit 1
+                ;;
             --help)
                 cat << EOF
 Usage: $0 [OPTIONS]
@@ -879,12 +1089,18 @@ Options:
   --skip-insights-rbac         Skip insights-rbac (run locally on port 8080)
   --skip-insights-host-inventory  Skip insights-host-inventory (run locally on port 8081)
   --with-observability         Deploy Prometheus, Grafana, and Alertmanager
-  --minimal                    Start only SpiceDB + Relations API (schema testing, new service dev)
+  --minimal                    SpiceDB + Relations API only (schema testing, new service dev)
+  --kessel-core                SpiceDB + Relations API + Inventory API (no Kafka, no Insights)
+  --kessel-core-rbac           kessel-core + Kafka + insights-rbac
+  --kessel-core-hbi            kessel-core + Kafka + insights-host-inventory
   --help                       Show this help message
 
 Examples:
   $0                          # Full deployment (14 containers)
   $0 --minimal                # SpiceDB + Relations API only (3 containers, fast)
+  $0 --kessel-core            # SpiceDB + Relations + Inventory (7 containers)
+  $0 --kessel-core-rbac       # kessel-core + Kafka + RBAC (10 containers)
+  $0 --kessel-core-hbi        # kessel-core + Kafka + HBI (10 containers)
   $0 --clean-volumes          # Fresh deployment (removes data)
   $0 --skip-tests             # Deploy without verification
   $0 --with-observability     # Deploy with Prometheus + Grafana + Alertmanager
@@ -899,6 +1115,7 @@ Local Development (skip services to run them from source locally):
 
 New Service Integration:
   $0 --minimal                # Start just the auth layer
+  $0 --kessel-core            # Start full Kessel authorization stack
   # Then load your schema, create tuples, run CheckPermission
   # See onboarding/ for step-by-step guides
 

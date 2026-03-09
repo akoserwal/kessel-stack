@@ -186,7 +186,7 @@ health-exporter:
 ### Build the Image
 
 ```bash
-cd /path/to/kessel-in-a-box
+cd /path/to/kessel-stack
 
 docker-compose \
   -f compose/docker-compose.yml \

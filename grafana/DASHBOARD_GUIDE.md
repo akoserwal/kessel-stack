@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Kessel-in-a-Box Grafana dashboards provide comprehensive observability for the entire Kessel authorization system, including APIs, SpiceDB, data pipelines, and infrastructure.
+The Kessel Stack Grafana dashboards provide comprehensive observability for the entire Kessel authorization system, including APIs, SpiceDB, data pipelines, and infrastructure.
 
 **Total Dashboards:** 7
 
@@ -553,7 +553,7 @@ Add annotations for events:
 - `grafana-dashboard-insights-inventory-general.configmap.yaml` (4,399 lines)
 - `grafana-dashboard-insights-inventory-msk.configmap.yaml` (1,207 lines)
 
-### Adaptations for kessel-in-a-box
+### Adaptations for kessel-stack
 
 - Adapted job labels for local environment
 - Added SpiceDB-specific gRPC metrics
@@ -591,14 +591,14 @@ All new dashboards created on: **2026-02-16**
 ### Documentation
 
 - **Learning Paths:** `/Users/akoserwa/kessel/kessel-world/docs/learning-paths/`
-- **Demo Scripts:** `/Users/akoserwa/kessel/kessel-world/kessel-in-a-box/DEMO_*.md`
-- **Architecture:** `/Users/akoserwa/kessel/kessel-world/kessel-in-a-box/ARCHITECTURE_REVIEW_GUIDE.md`
+- **Demo Scripts:** `/Users/akoserwa/kessel/kessel-world/kessel-stack/DEMO_*.md`
+- **Architecture:** `/Users/akoserwa/kessel/kessel-world/kessel-stack/ARCHITECTURE_REVIEW_GUIDE.md`
 
 ### Quick Reference
 
 **Grafana Access:** http://localhost:3000 (admin/admin)
 **Prometheus:** http://localhost:9091
-**Dashboard Directory:** `/Users/akoserwa/kessel/kessel-world/kessel-in-a-box/grafana/dashboards/`
+**Dashboard Directory:** `/Users/akoserwa/kessel/kessel-world/kessel-stack/grafana/dashboards/`
 
 ---
 
@@ -607,7 +607,7 @@ All new dashboards created on: **2026-02-16**
 ✅ **7 comprehensive dashboards** covering all Kessel services
 ✅ **Production-based metrics** from insights-host-inventory
 ✅ **Demo-optimized** with 10-second refresh and clear visualizations
-✅ **Fully integrated** with kessel-in-a-box environment
+✅ **Fully integrated** with kessel-stack environment
 ✅ **Ready for presentations** with logical navigation flow
 
 **Start exploring:** Open http://localhost:3000 and navigate to the "Kessel" folder!

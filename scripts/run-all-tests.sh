@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kessel-in-a-Box: Complete Test Suite
+# Kessel Stack: Complete Test Suite
 # Runs comprehensive verification of all components and flows
 
 set -e
@@ -61,7 +61,7 @@ run_test() {
 # Banner
 echo ""
 echo "=========================================="
-echo "  Kessel-in-a-Box: Complete Test Suite"
+echo "  Kessel Stack: Complete Test Suite"
 echo "=========================================="
 echo ""
 
@@ -366,7 +366,7 @@ echo ""
 if [ $FAILED -eq 0 ]; then
     log_success "All tests passed! ✓"
     echo ""
-    log_info "Kessel-in-a-Box is fully operational and verified."
+    log_info "Kessel Stack is fully operational and verified."
     exit 0
 else
     log_fail "Some tests failed!"

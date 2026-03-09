@@ -13,7 +13,7 @@ CREATE SCHEMA IF NOT EXISTS edge;
 CREATE TABLE IF NOT EXISTS edge.devices (
     id           UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     display_name VARCHAR(255) NOT NULL,
-    workspace_id VARCHAR(255) NOT NULL,   -- rbac/workspace ID from kessel-in-a-box
+    workspace_id VARCHAR(255) NOT NULL,   -- rbac/workspace ID from kessel-stack
     reporter     VARCHAR(100) NOT NULL DEFAULT 'edge-device-service',
     org_id       VARCHAR(100) NOT NULL DEFAULT '12345',
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),

@@ -1,4 +1,4 @@
-# Prometheus Configuration for Kessel-in-a-Box
+# Prometheus Configuration for Kessel Stack
 # Scrapes metrics from services that exist in the minimal demo environment
 
 global:
@@ -20,7 +20,7 @@ alerting:
 rule_files:
   - 'alerts.yml'
 
-# Scrape configurations - ONLY services that exist in kessel-in-a-box
+# Scrape configurations - ONLY services that exist in kessel-stack
 scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
@@ -63,7 +63,7 @@ scrape_configs:
     scrape_timeout: 5s
 
   # Health Check Exporter - Monitors services via health endpoints
-  # NOTE: In kessel-in-a-box minimal demo, no services are monitored
+  # NOTE: In kessel-stack minimal demo, no services are monitored
   # The exporter is included for future use with full Kessel deployment
   - job_name: 'health-exporter'
     static_configs:

@@ -1,4 +1,4 @@
--- kessel-in-a-box-real: HBI (insights-host-inventory) Database Initialization
+-- kessel-stack-real: HBI (insights-host-inventory) Database Initialization
 -- This is postgres-inventory — HBI's own postgres, separate from kessel-inventory-api.
 -- HBI runs its own Alembic migrations to create application tables (hosts, groups, etc.)
 -- This script sets up extensions and creates the hbi.outbox schema/table for CDC Stage 1.

@@ -1,4 +1,4 @@
-module github.com/project-kessel/kessel-in-a-box/rbac-consumer
+module github.com/project-kessel/kessel-stack/rbac-consumer
 
 go 1.21
 
