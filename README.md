@@ -65,6 +65,16 @@ Data stores: postgres-rbac (5432), postgres-inventory (5433),
 - `grpcurl` (for gRPC health checks and demo)
 - 8 GB RAM minimum, 20 GB disk space
 
+### Deployment Modes
+
+| Flag | Services started | Use case |
+|------|-----------------|----------|
+| *(none)* | Full stack — all ~14 containers | End-to-end development, demo |
+| `--minimal` | SpiceDB + Relations API only | Schema testing, new service dev |
+| `--kessel-core` | SpiceDB + Relations API + Inventory API | Core Kessel APIs, no Kafka/CDC |
+| `--kessel-core-rbac` | kessel-core + Kafka + insights-rbac | RBAC → SpiceDB CDC pipeline |
+| `--kessel-core-hbi` | kessel-core + Kafka + insights-host-inventory | HBI → SpiceDB two-stage CDC |
+
 ### Deploy Everything
 
 ```bash
@@ -74,7 +84,16 @@ Data stores: postgres-rbac (5432), postgres-inventory (5433),
 # Deploy all services (full stack with Kafka)
 ./scripts/deploy.sh
 
-# Minimal deploy — core services only, no Kafka/CDC
+# SpiceDB + Relations API + Inventory API — no Kafka, no Insights apps
+./scripts/deploy.sh --kessel-core
+
+# kessel-core + Kafka CDC pipeline + insights-rbac
+./scripts/deploy.sh --kessel-core-rbac
+
+# kessel-core + Kafka CDC pipeline + insights-host-inventory
+./scripts/deploy.sh --kessel-core-hbi
+
+# SpiceDB + Relations API only (smallest footprint)
 ./scripts/deploy.sh --minimal
 ```
 
