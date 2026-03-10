@@ -83,6 +83,13 @@ services:
       V2_BOOTSTRAP_TENANT: "True"
       WORKSPACE_HIERARCHY_DEPTH_LIMIT: "5"
       WORKSPACE_ORG_CREATION_LIMIT: "20000000"
+      # Required for tenant bootstrap: default role UUIDs used when a new org first
+      # hits the API. Without these, UUID("") raises ValueError → 500 on first request.
+      # Values from insights-rbac/.env.example (development defaults).
+      SYSTEM_DEFAULT_ROOT_WORKSPACE_ROLE_UUID: "23592f00-71f7-482d-be2c-e82eeb704406"
+      SYSTEM_DEFAULT_TENANT_ROLE_UUID: "d8e9d8c6-1edf-41b8-951d-805e9e701f49"
+      SYSTEM_ADMIN_ROOT_WORKSPACE_ROLE_UUID: "411ef1a0-75a8-4765-8e9f-377297e8ee28"
+      SYSTEM_ADMIN_TENANT_ROLE_UUID: "a62b9113-593d-471b-96aa-971d6e748a9b"
 
       # Kafka — outbox writes are enabled via REPLICATION_TO_RELATION_ENABLED=true
       # which makes RBAC use OutboxReplicator (writes to management_outbox).

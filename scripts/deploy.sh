@@ -672,9 +672,11 @@ EOF
 
 🧪 Quick Test:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # Create a workspace
-  curl -X POST http://localhost:8080/api/v1/workspaces \\
+  # Create a workspace (x-rh-identity header is required by RBAC)
+  RBAC_IDENTITY=\$(echo -n '{"identity":{"org_id":"11111","type":"User","user":{"username":"user_dev","is_org_admin":true},"internal":{"org_id":"11111"}}}' | base64)
+  curl -X POST http://localhost:8080/api/rbac/v2/workspaces/ \\
     -H "Content-Type: application/json" \\
+    -H "x-rh-identity: \$RBAC_IDENTITY" \\
     -d '{"name":"my-workspace","description":"Test workspace"}'
 
   # Create a host (requires x-rh-identity header)
